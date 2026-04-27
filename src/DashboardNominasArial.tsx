@@ -1177,78 +1177,78 @@ const motorEstrategias = (actividad: string): Estrategia[] => {
     return [
       { titulo: 'Servicios de Capacitación y Cursos', descripcion: 'Diseño e impartición de cursos de actualización docente, talleres pedagógicos y programas de formación continua para personal académico y administrativo.', ejemploCFDI: 'Curso de actualización en metodologías pedagógicas · Programa de formación docente Q4', riesgoFiscal: 'Bajo' },
       { titulo: 'Consultoría en Procesos Educativos', descripcion: 'Asesoría en diseño curricular, evaluación de programas académicos, acreditaciones (CONACYT, COPAES) y mejora institucional.', ejemploCFDI: 'Consultoría para evaluación curricular del programa de licenciatura · Servicios de asesoría académica', riesgoFiscal: 'Bajo' },
-      { titulo: 'Servicios Administrativos Especializados', descripcion: 'Procesamiento de nóminas docente y administrativa, gestión de prestaciones, control de plantilla académica y administración de recursos humanos.', ejemploCFDI: 'Servicios profesionales de administración de nómina · Gestión integral de RRHH académicos', riesgoFiscal: 'Bajo' }
+      { titulo: 'Auditoría de Cumplimiento Académico-Laboral', descripcion: 'Revisión integral de contratos docentes, esquemas de honorarios, NOM-035, prima de riesgo IMSS y obligaciones STPS en planteles educativos. Informe ejecutivo con plan de remediación.', ejemploCFDI: 'Servicios de auditoría de cumplimiento laboral educativo · Diagnóstico NOM-035 docente', riesgoFiscal: 'Bajo' }
     ];
   }
 
   if (a.includes('construc') || a.includes('obra') || a.includes('edifica') || a.includes('inmobiliari')) {
     return [
-      { titulo: 'Servicios de Administración de Personal de Obra', descripcion: 'Procesamiento de nómina semanal de personal de campo, control de cuadrillas, gestión IMSS de eventuales y cálculo de finiquitos por obra.', ejemploCFDI: 'Servicios de administración de nómina de personal de obra · Gestión IMSS por proyecto', riesgoFiscal: 'Bajo' },
-      { titulo: 'Consultoría en Gestión Laboral de Construcción', descripcion: 'Asesoría en cumplimiento STPS, programas de seguridad e higiene, capacitación obligatoria DC-3 y mitigación de riesgos laborales.', ejemploCFDI: 'Consultoría en seguridad e higiene industrial · Programa DC-3 de capacitación', riesgoFiscal: 'Bajo' },
-      { titulo: 'Servicios de Outsourcing Especializado (REPSE)', descripcion: 'Servicios complementarios bajo registro REPSE para áreas no esenciales de la operación constructiva: limpieza de obra, vigilancia y logística.', ejemploCFDI: 'Servicios especializados REPSE · Apoyo administrativo en obra', riesgoFiscal: 'Medio' }
+      { titulo: 'Auditoría de Seguridad e Higiene en Obra', descripcion: 'Inspección de cumplimiento NOM-031-STPS, revisión de equipos de protección personal, análisis de accidentabilidad por proyecto y emisión de plan de mitigación de riesgos.', ejemploCFDI: 'Servicios de auditoría en seguridad e higiene de obra · Inspección NOM-031-STPS', riesgoFiscal: 'Bajo' },
+      { titulo: 'Consultoría en Gestión Laboral de Construcción', descripcion: 'Asesoría en cumplimiento STPS, programas de seguridad e higiene, capacitación obligatoria DC-3 y mitigación de riesgos laborales por proyecto.', ejemploCFDI: 'Consultoría en seguridad e higiene industrial · Programa DC-3 de capacitación', riesgoFiscal: 'Bajo' },
+      { titulo: 'Servicios de Outsourcing Especializado (REPSE)', descripcion: 'Servicios complementarios bajo registro REPSE para áreas no esenciales de la operación constructiva: vigilancia, limpieza de obra y logística de materiales.', ejemploCFDI: 'Servicios especializados REPSE · Apoyo logístico y de vigilancia en obra', riesgoFiscal: 'Medio' }
     ];
   }
 
   if (a.includes('restaurant') || a.includes('aliment') || a.includes('bebida') || a.includes('comida') || a.includes('hotel')) {
     return [
-      { titulo: 'Administración de Personal de Servicio', descripcion: 'Procesamiento de nómina con propinas, control de turnos rotativos, cálculo de séptimo día, vacaciones y prima dominical.', ejemploCFDI: 'Servicios de administración de nómina restaurantera · Gestión de personal de servicio', riesgoFiscal: 'Bajo' },
       { titulo: 'Capacitación en Servicio y Manejo de Alimentos', descripcion: 'Programas de capacitación NOM-251 (manejo higiénico), atención al cliente, mixología y servicio de mesa para personal operativo.', ejemploCFDI: 'Curso de manejo higiénico de alimentos NOM-251 · Capacitación en servicio al cliente', riesgoFiscal: 'Bajo' },
-      { titulo: 'Consultoría en Cumplimiento Sanitario y Laboral', descripcion: 'Asesoría en distintivo H, protocolos COFEPRIS, gestión de PTU específica del sector y cumplimiento de propinas.', ejemploCFDI: 'Consultoría en distintivo H y protocolos sanitarios · Asesoría laboral del sector', riesgoFiscal: 'Bajo' }
+      { titulo: 'Consultoría en Cumplimiento Sanitario y Laboral', descripcion: 'Asesoría en distintivo H, protocolos COFEPRIS, gestión de PTU específica del sector y cumplimiento de propinas.', ejemploCFDI: 'Consultoría en distintivo H y protocolos sanitarios · Asesoría laboral del sector', riesgoFiscal: 'Bajo' },
+      { titulo: 'Auditoría Operativa y de Calidad de Servicio', descripcion: 'Mystery shopper, revisión de cumplimiento de turnos y séptimo día, evaluación de propinas, diagnóstico de calidad de servicio y plan de mejora operativa.', ejemploCFDI: 'Servicios de auditoría operativa restaurantera · Diagnóstico de calidad de servicio', riesgoFiscal: 'Bajo' }
     ];
   }
 
   if (a.includes('manufactur') || a.includes('fabrica') || a.includes('industri') || a.includes('producci') || a.includes('textil') || a.includes('metal') || a.includes('automotr')) {
     return [
-      { titulo: 'Administración Integral de Nómina Industrial', descripcion: 'Procesamiento de nómina con turnos, primas dominical y nocturna, tiempo extra, bonos de productividad y cálculo de PTU manufacturero.', ejemploCFDI: 'Servicios de administración de nómina industrial · Cálculo de prestaciones manufactureras', riesgoFiscal: 'Bajo' },
       { titulo: 'Capacitación Técnica y Certificaciones', descripcion: 'Programas DC-3 obligatorios, capacitación en operación de maquinaria, certificaciones ISO 9001 y formación en seguridad industrial.', ejemploCFDI: 'Capacitación DC-3 en operación de maquinaria · Programa ISO 9001 para personal operativo', riesgoFiscal: 'Bajo' },
-      { titulo: 'Consultoría en Gestión de Riesgos Laborales', descripcion: 'Asesoría en NOM-035 (factores psicosociales), prima de riesgo IMSS, análisis de accidentabilidad y mitigación de incapacidades.', ejemploCFDI: 'Consultoría en NOM-035 · Análisis y reducción de prima de riesgo IMSS', riesgoFiscal: 'Bajo' }
+      { titulo: 'Consultoría en Gestión de Riesgos Laborales', descripcion: 'Asesoría en NOM-035 (factores psicosociales), prima de riesgo IMSS, análisis de accidentabilidad y mitigación de incapacidades.', ejemploCFDI: 'Consultoría en NOM-035 · Análisis y reducción de prima de riesgo IMSS', riesgoFiscal: 'Bajo' },
+      { titulo: 'Auditoría de Riesgo de Trabajo y Prima IMSS', descripcion: 'Análisis de siniestralidad, revisión técnica de la prima de riesgo IMSS, diagnóstico de NOM-030-STPS y plan de reducción de incidentes en planta.', ejemploCFDI: 'Servicios de auditoría de riesgo de trabajo · Análisis de prima IMSS y NOM-030', riesgoFiscal: 'Bajo' }
     ];
   }
 
   if (a.includes('comercio') || a.includes('venta') || a.includes('distribu') || a.includes('mayoreo') || a.includes('menudeo')) {
     return [
-      { titulo: 'Administración de Nómina Comercial', descripcion: 'Procesamiento de nómina con esquemas de comisiones, bonos por venta, tiempo extra de temporada alta y cálculo de PTU comercial.', ejemploCFDI: 'Servicios de administración de nómina con esquema de comisiones · Gestión de personal de ventas', riesgoFiscal: 'Bajo' },
       { titulo: 'Capacitación en Ventas y Atención al Cliente', descripcion: 'Programas de formación en técnicas de venta, servicio al cliente, manejo de objeciones y CRM para fuerza de ventas.', ejemploCFDI: 'Curso de técnicas avanzadas de venta · Capacitación en CRM y servicio al cliente', riesgoFiscal: 'Bajo' },
-      { titulo: 'Consultoría en Estructura de Compensación Variable', descripcion: 'Diseño de tabuladores con esquema fijo + variable, optimización fiscal de comisiones y bonos, cumplimiento de la base de cotización mixta.', ejemploCFDI: 'Consultoría en diseño de esquemas de compensación · Asesoría fiscal de comisiones', riesgoFiscal: 'Medio' }
+      { titulo: 'Consultoría en Estructura de Compensación Variable', descripcion: 'Diseño de tabuladores con esquema fijo + variable, optimización fiscal de comisiones y bonos, cumplimiento de la base de cotización mixta.', ejemploCFDI: 'Consultoría en diseño de esquemas de compensación · Asesoría fiscal de comisiones', riesgoFiscal: 'Medio' },
+      { titulo: 'Diagnóstico de Productividad y Retención Comercial', descripcion: 'Análisis de KPIs de fuerza de ventas, evaluación de rotación de personal, diseño de planes de carrera y propuestas de retención de talento clave.', ejemploCFDI: 'Servicios de diagnóstico de productividad comercial · Plan de retención de talento de ventas', riesgoFiscal: 'Bajo' }
     ];
   }
 
   if (a.includes('agricul') || a.includes('ganader') || a.includes('pesca') || a.includes('agroind')) {
     return [
-      { titulo: 'Nómina de Trabajadores Eventuales del Campo', descripcion: 'Procesamiento de nómina para jornaleros agrícolas, alta y baja IMSS por temporada, cálculo de cuotas reducidas y manejo de eventualidad.', ejemploCFDI: 'Servicios de administración de nómina agrícola · Gestión IMSS de eventuales del campo', riesgoFiscal: 'Bajo' },
       { titulo: 'Capacitación en Seguridad Agroindustrial', descripcion: 'Programas de capacitación en manejo seguro de agroquímicos, NOM-003-STPS, primeros auxilios en campo y operación de maquinaria agrícola.', ejemploCFDI: 'Capacitación en NOM-003-STPS manejo de agroquímicos · Programa de primeros auxilios en campo', riesgoFiscal: 'Bajo' },
-      { titulo: 'Consultoría en Cumplimiento Laboral del Campo', descripcion: 'Asesoría en cumplimiento de la Ley Federal del Trabajo Capítulo VIII (trabajadores del campo), prestaciones obligatorias y SUA agrícola.', ejemploCFDI: 'Consultoría en LFT Capítulo VIII · Asesoría en prestaciones del trabajador del campo', riesgoFiscal: 'Bajo' }
+      { titulo: 'Consultoría en Cumplimiento Laboral del Campo', descripcion: 'Asesoría en cumplimiento de la Ley Federal del Trabajo Capítulo VIII (trabajadores del campo), prestaciones obligatorias y régimen IMSS de eventuales.', ejemploCFDI: 'Consultoría en LFT Capítulo VIII · Asesoría en prestaciones del trabajador del campo', riesgoFiscal: 'Bajo' },
+      { titulo: 'Auditoría de Cumplimiento Agrícola y Estacionalidad', descripcion: 'Revisión del régimen de eventuales del campo, análisis de cuotas IMSS reducidas, dictamen de estacionalidad y plan de cumplimiento de jornaleros.', ejemploCFDI: 'Servicios de auditoría agrícola laboral · Dictamen de cumplimiento Capítulo VIII LFT', riesgoFiscal: 'Bajo' }
     ];
   }
 
   if (a.includes('salud') || a.includes('médic') || a.includes('hospital') || a.includes('clínic') || a.includes('farmac')) {
     return [
-      { titulo: 'Administración de Nómina del Sector Salud', descripcion: 'Procesamiento de nómina con guardias médicas, prima dominical, tiempo extra hospitalario y bonos de riesgo sanitario.', ejemploCFDI: 'Servicios de administración de nómina hospitalaria · Cálculo de guardias y prestaciones médicas', riesgoFiscal: 'Bajo' },
       { titulo: 'Capacitación NOM en Salud y Seguridad', descripcion: 'Programas de capacitación NOM-016, NOM-019, manejo de RPBI, bioseguridad y atención de emergencias para personal clínico y administrativo.', ejemploCFDI: 'Capacitación NOM-016 manejo de RPBI · Programa de bioseguridad hospitalaria', riesgoFiscal: 'Bajo' },
-      { titulo: 'Consultoría en Cumplimiento Sanitario y Laboral', descripcion: 'Asesoría en COFEPRIS para personal, gestión de cédulas profesionales, certificación CSG y cumplimiento de prima de riesgo de clase IV.', ejemploCFDI: 'Consultoría en cumplimiento COFEPRIS · Asesoría en certificación CSG', riesgoFiscal: 'Bajo' }
+      { titulo: 'Consultoría en Cumplimiento Sanitario y Laboral', descripcion: 'Asesoría en COFEPRIS para personal, gestión de cédulas profesionales, certificación CSG y cumplimiento de prima de riesgo de clase IV.', ejemploCFDI: 'Consultoría en cumplimiento COFEPRIS · Asesoría en certificación CSG', riesgoFiscal: 'Bajo' },
+      { titulo: 'Auditoría de Bioseguridad y Manejo de RPBI', descripcion: 'Revisión técnica del manejo de Residuos Peligrosos Biológico-Infecciosos, dictamen de cumplimiento NOM-087-ECOL-SSA1 y plan de remediación de bioseguridad.', ejemploCFDI: 'Servicios de auditoría de bioseguridad · Dictamen NOM-087-ECOL-SSA1 manejo de RPBI', riesgoFiscal: 'Bajo' }
     ];
   }
 
   if (a.includes('transport') || a.includes('logistic') || a.includes('flete') || a.includes('carga') || a.includes('paqueter')) {
     return [
-      { titulo: 'Administración de Nómina de Operadores', descripcion: 'Procesamiento de nómina con bonos por viaje, viáticos, tiempo extra de ruta, primas dominical y nocturna para operadores de transporte.', ejemploCFDI: 'Servicios de administración de nómina de operadores · Gestión de bonos por viaje y viáticos', riesgoFiscal: 'Bajo' },
       { titulo: 'Capacitación en Seguridad Vial y NOM-087', descripcion: 'Programas DC-3 obligatorios, capacitación en NOM-087-SCT-2017 (transporte de materiales peligrosos), manejo defensivo y bitácora electrónica.', ejemploCFDI: 'Capacitación NOM-087-SCT en transporte · Programa de manejo defensivo DC-3', riesgoFiscal: 'Bajo' },
-      { titulo: 'Consultoría en Cumplimiento SCT y Laboral', descripcion: 'Asesoría en regulación SCT, gestión de licencias federales, programas de fatiga y descanso, y cumplimiento de horas-hombre regulatorias.', ejemploCFDI: 'Consultoría en cumplimiento SCT · Asesoría en programas de fatiga y descanso', riesgoFiscal: 'Bajo' }
+      { titulo: 'Consultoría en Cumplimiento SCT y Laboral', descripcion: 'Asesoría en regulación SCT, gestión de licencias federales, programas de fatiga y descanso, y cumplimiento de horas-hombre regulatorias.', ejemploCFDI: 'Consultoría en cumplimiento SCT · Asesoría en programas de fatiga y descanso', riesgoFiscal: 'Bajo' },
+      { titulo: 'Auditoría de Programas de Fatiga y Bitácoras', descripcion: 'Revisión de bitácoras electrónicas de operadores, análisis de cumplimiento de horas-hombre regulatorias, dictamen de fatiga y descanso conforme a SCT.', ejemploCFDI: 'Servicios de auditoría de seguridad vial · Dictamen de fatiga y bitácoras electrónicas', riesgoFiscal: 'Bajo' }
     ];
   }
 
   if (a.includes('servicio') || a.includes('consult') || a.includes('profesion') || a.includes('asesor')) {
     return [
-      { titulo: 'Administración de Nómina de Personal Profesional', descripcion: 'Procesamiento de nómina para consultores y profesionistas, cálculo de prestaciones premium, bonos por proyecto y esquemas mixtos.', ejemploCFDI: 'Servicios de administración de nómina profesional · Gestión de bonos por proyecto', riesgoFiscal: 'Bajo' },
       { titulo: 'Capacitación Especializada y Certificaciones', descripcion: 'Programas de actualización profesional, certificaciones internacionales, soft skills y desarrollo de liderazgo para equipos consultivos.', ejemploCFDI: 'Programa de certificación profesional · Capacitación en habilidades de liderazgo', riesgoFiscal: 'Bajo' },
-      { titulo: 'Consultoría en Diseño Organizacional', descripcion: 'Asesoría en estructura de compensación competitiva, esquemas de retención de talento, plan de carrera y evaluación de desempeño.', ejemploCFDI: 'Consultoría en diseño organizacional · Asesoría en planes de retención de talento', riesgoFiscal: 'Bajo' }
+      { titulo: 'Consultoría en Diseño Organizacional', descripcion: 'Asesoría en estructura de compensación competitiva, esquemas de retención de talento, plan de carrera y evaluación de desempeño.', ejemploCFDI: 'Consultoría en diseño organizacional · Asesoría en planes de retención de talento', riesgoFiscal: 'Bajo' },
+      { titulo: 'Auditoría y Diagnóstico Laboral Integral', descripcion: 'Revisión de cumplimiento STPS, NOM-035, prima de riesgo IMSS, esquemas de subcontratación y emisión de informe ejecutivo con plan de remediación.', ejemploCFDI: 'Servicios de auditoría laboral · Diagnóstico de cumplimiento STPS y NOM-035', riesgoFiscal: 'Bajo' }
     ];
   }
 
   return [
-    { titulo: 'Administración Integral de Nómina', descripcion: 'Procesamiento completo de nómina, cálculo de prestaciones de ley, gestión IMSS-INFONAVIT y timbrado CFDI 4.0.', ejemploCFDI: 'Servicios profesionales de administración de nómina · Procesamiento integral mensual', riesgoFiscal: 'Bajo' },
     { titulo: 'Capacitación Laboral y Desarrollo de Personal', descripcion: 'Programas DC-3 obligatorios, capacitación en NOM-035, desarrollo de habilidades blandas y formación continua.', ejemploCFDI: 'Programa DC-3 de capacitación obligatoria · Curso NOM-035 factores psicosociales', riesgoFiscal: 'Bajo' },
-    { titulo: 'Consultoría en Cumplimiento Laboral y Fiscal', descripcion: 'Asesoría en obligaciones STPS, IMSS, SAT, INFONAVIT, gestión de auditorías y mitigación de riesgos regulatorios.', ejemploCFDI: 'Consultoría en cumplimiento laboral · Asesoría regulatoria integral', riesgoFiscal: 'Bajo' }
+    { titulo: 'Consultoría en Cumplimiento Laboral y Fiscal', descripcion: 'Asesoría en obligaciones STPS, IMSS, SAT, INFONAVIT, gestión de auditorías y mitigación de riesgos regulatorios.', ejemploCFDI: 'Consultoría en cumplimiento laboral · Asesoría regulatoria integral', riesgoFiscal: 'Bajo' },
+    { titulo: 'Diagnóstico de Cumplimiento STPS-IMSS-INFONAVIT', descripcion: 'Análisis integral de cumplimiento ante autoridades laborales y de seguridad social, revisión de obligaciones, identificación de contingencias y plan de remediación.', ejemploCFDI: 'Servicios de diagnóstico de cumplimiento STPS-IMSS-INFONAVIT · Análisis de contingencias laborales', riesgoFiscal: 'Bajo' }
   ];
 };
 
