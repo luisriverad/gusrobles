@@ -20,3 +20,44 @@ body {
   width: 100%;
   min-height: 100vh;
 }
+
+/* ===== Impresión / Descarga PDF del Reporte a Clientes ===== */
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm 12mm;
+  }
+
+  html, body {
+    background-color: #ffffff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Oculta todo lo que NO sea el reporte imprimible */
+  body * {
+    visibility: hidden;
+  }
+  .reporte-printable, .reporte-printable * {
+    visibility: visible;
+  }
+  .reporte-printable {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 0 !important;
+  }
+
+  /* Cada sección arranca en una página nueva para una lectura ordenada */
+  .reporte-seccion {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}

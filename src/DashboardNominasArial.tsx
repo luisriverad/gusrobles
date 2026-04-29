@@ -9,6 +9,7 @@ import {
 type Estatus = 'ok' | 'riesgo' | 'critico';
 type Periodicidad = 'Semanal' | 'Quincenal' | 'Mensual';
 type EstadoKPI = 'ok' | 'alerta';
+type EstadoSemaforo = 'verde' | 'amarillo' | 'rojo';
 
 interface Cliente {
   id: string;
@@ -63,6 +64,7 @@ interface KPIProps {
   unidad: string;
   meta: string;
   estado: EstadoKPI;
+  semaforo: EstadoSemaforo;
   divider?: boolean;
 }
 
@@ -355,89 +357,143 @@ interface ReporteMaterialidad {
 const REPORTES_MATERIALIDAD: ReporteMaterialidad[] = [
   {
     numero: '01',
-    titulo: 'Contrato de Prestación de Servicios',
-    descripcion: 'Contrato firmado con cláusulas de alcance, fee, vigencia y entregables específicos. Anexos por sucursal o razón social cuando aplique.',
+    titulo: 'Contrato de Prestación de Servicios con Razón de Negocio',
+    descripcion: 'Contrato firmado con cláusulas de alcance, fee, vigencia, entregables específicos y declaración expresa de razón de negocio conforme al artículo 5-A del CFF. Anexos por sucursal o razón social cuando aplique.',
     tipo: 'Documento legal',
     frecuencia: 'Anual / al alta',
-    retencion: '5 años post-vigencia',
-    evidencia: 'Existencia y razón de negocio del servicio'
+    retencion: '5 años post-vigencia (Art. 30 CFF)',
+    evidencia: 'Existencia, razón de negocio y materialidad sustancial (Art. 5-A CFF)'
   },
   {
     numero: '02',
-    titulo: 'Orden de Servicio del Periodo',
-    descripcion: 'Documento mensual o quincenal que detalla el periodo procesado, número de empleados y entregables comprometidos.',
-    tipo: 'Documento operativo',
-    frecuencia: 'Por periodo de nómina',
-    retencion: '5 años',
-    evidencia: 'Servicio efectivamente prestado en cada CFDI'
+    titulo: 'Constancia de Situación Fiscal (CSF) Vigente',
+    descripcion: 'CSF actualizada del cliente y del despacho con régimen fiscal, obligaciones y actividades económicas registradas; validación que el régimen del cliente permite la deducción del servicio.',
+    tipo: 'Documento SAT',
+    frecuencia: 'Anual o por cambio de domicilio/régimen',
+    retencion: '5 años (Art. 30 CFF)',
+    evidencia: 'Identificación fiscal y régimen vigente al momento del servicio'
   },
   {
     numero: '03',
-    titulo: 'CFDI 4.0 de Honorarios + Complemento de Pago',
-    descripcion: 'Factura emitida por el despacho con descripción puntual del servicio (no genérica) y complemento REP por cada cobro.',
-    tipo: 'CFDI',
-    frecuencia: 'Por cada facturación',
+    titulo: 'Opinión Positiva de Cumplimiento (Art. 32-D CFF)',
+    descripcion: 'Opinión de cumplimiento en sentido positivo del cliente y del despacho, descargada del Portal SAT al momento del cierre del servicio o de la facturación.',
+    tipo: 'Acuse SAT',
+    frecuencia: 'Mensual o trimestral',
+    retencion: '5 años',
+    evidencia: 'Estado de cumplimiento fiscal de ambas partes'
+  },
+  {
+    numero: '04',
+    titulo: 'Verificación de Listas EFOS / EDOS (Art. 69-B CFF)',
+    descripcion: 'Evidencia de consulta periódica al listado del SAT de Empresas que Facturan Operaciones Simuladas (EFOS) y EDOS para confirmar que ninguna parte se ubica en presunción o lista definitiva.',
+    tipo: 'Verificación SAT',
+    frecuencia: 'Mensual y previo a cada facturación',
+    retencion: '5 años',
+    evidencia: 'Mitigación del riesgo de operaciones simuladas'
+  },
+  {
+    numero: '05',
+    titulo: 'Constancia REPSE Vigente (cuando proceda)',
+    descripcion: 'Registro de Prestadoras de Servicios Especializados u Obras Especializadas vigente del despacho, con folio activo y renovación trianual conforme a la reforma laboral 2021 (LFT 12-15).',
+    tipo: 'Registro STPS',
+    frecuencia: 'Verificación trianual / al inicio de servicio',
+    retencion: 'Mientras dure la relación + 5 años',
+    evidencia: 'Procedencia de la deducción cuando hay personal especializado'
+  },
+  {
+    numero: '06',
+    titulo: 'Orden de Servicio del Periodo',
+    descripcion: 'Documento por periodo de nómina que detalla el alcance procesado, número de empleados, entregables comprometidos y vinculación uno-a-uno con el CFDI emitido (Art. 29-A CFF).',
+    tipo: 'Documento operativo',
+    frecuencia: 'Por periodo de nómina',
+    retencion: '5 años',
+    evidencia: 'Servicio efectivamente prestado y trazabilidad CFDI'
+  },
+  {
+    numero: '07',
+    titulo: 'CFDI 4.0 de Honorarios + Complemento REP',
+    descripcion: 'Factura del despacho con descripción detallada del servicio (no genérica), uso del CFDI correcto, método y forma de pago conforme al catálogo SAT, y Complemento de Recibo Electrónico de Pago por cada cobro.',
+    tipo: 'CFDI 4.0',
+    frecuencia: 'Por cada facturación / cobro',
     retencion: '5 años',
     evidencia: 'Concepto, monto y cobro real del honorario'
   },
   {
-    numero: '04',
-    titulo: 'Bitácora de Procesamiento de Nómina',
-    descripcion: 'Log con fecha de recepción de incidencias, captura, validación, cierre, dispersión y timbrado. Firma de responsable por etapa.',
-    tipo: 'Reporte interno',
-    frecuencia: 'Por periodo',
-    retencion: '5 años',
-    evidencia: 'Trazabilidad operativa del servicio'
-  },
-  {
-    numero: '05',
-    titulo: 'Recibos CFDI Timbrados (nómina del cliente)',
-    descripcion: 'Acuse de timbrado de cada recibo de nómina emitido a nombre del cliente, con XML y PDF respaldados.',
-    tipo: 'CFDI nómina',
-    frecuencia: 'Por periodo',
-    retencion: '5 años',
-    evidencia: 'Entregable concreto del servicio facturado'
-  },
-  {
-    numero: '06',
-    titulo: 'Acuses IMSS-IDSE / SUA / INFONAVIT',
-    descripcion: 'Acuses de movimientos afiliatorios (altas, bajas, modificaciones de salario) y pago de cuotas obrero-patronales.',
-    tipo: 'Acuse oficial',
-    frecuencia: 'Mensual / por evento',
-    retencion: '5 años',
-    evidencia: 'Cumplimiento de obligaciones derivadas del servicio'
-  },
-  {
-    numero: '07',
-    titulo: 'Acuses de Declaraciones ISR Retenido',
-    descripcion: 'Acuses de presentación y pago del ISR por sueldos y salarios calculado y retenido como parte del servicio.',
-    tipo: 'Acuse SAT',
-    frecuencia: 'Mensual',
-    retencion: '5 años',
-    evidencia: 'Resultado fiscal entregado al cliente'
-  },
-  {
     numero: '08',
-    titulo: 'Reporte de Incidencias y Evidencia de Captura',
-    descripcion: 'Documento del cliente con altas, bajas, faltas, horas extra, vacaciones, comisiones — recibido por correo o portal con sello de tiempo.',
-    tipo: 'Insumo del cliente',
-    frecuencia: 'Por periodo',
+    titulo: 'CFDI 4.0 de Nómina con Complemento Vigente',
+    descripcion: 'Recibos timbrados con Complemento de Nómina conforme a la guía SAT vigente, percepciones y deducciones segregadas por clave del catálogo, y conciliación XML / PDF / acuse archivados.',
+    tipo: 'CFDI nómina',
+    frecuencia: 'Por periodo de pago',
     retencion: '5 años',
-    evidencia: 'Insumo que originó el procesamiento'
+    evidencia: 'Entregable concreto y deducible para el cliente'
   },
   {
     numero: '09',
-    titulo: 'Conciliaciones y Comprobantes de Dispersión',
-    descripcion: 'Layout bancario de dispersión de nómina, conciliación contra total calculado y comprobantes de transferencia.',
-    tipo: 'Reporte financiero',
+    titulo: 'Bitácora de Procesamiento con Sello de Tiempo',
+    descripcion: 'Log digital con fecha y hora de recepción de incidencias, captura, validación, autorización del cliente, dispersión y timbrado; firma electrónica del responsable por etapa.',
+    tipo: 'Reporte interno',
     frecuencia: 'Por periodo',
     retencion: '5 años',
-    evidencia: 'Cierre financiero del servicio'
+    evidencia: 'Trazabilidad operativa y control interno del servicio'
   },
   {
     numero: '10',
+    titulo: 'Acuses IMSS-IDSE / SUA / EMA / EBA',
+    descripcion: 'Acuses de movimientos afiliatorios (altas, bajas, modificaciones de salario), pago de cuotas obrero-patronales, EMA bimestral y EBA mensual del cliente.',
+    tipo: 'Acuse IMSS',
+    frecuencia: 'Mensual / por evento',
+    retencion: '5 años (5 años IMSS Art. 251)',
+    evidencia: 'Cumplimiento de obligaciones de seguridad social'
+  },
+  {
+    numero: '11',
+    titulo: 'Acuses INFONAVIT (SISUB) y FONACOT',
+    descripcion: 'Reporte trimestral SISUB para servicios especializados, acuses de retención y entero de descuentos INFONAVIT y FONACOT, conciliación con base salarial cotizable.',
+    tipo: 'Acuse oficial',
+    frecuencia: 'Trimestral SISUB / mensual descuentos',
+    retencion: '5 años',
+    evidencia: 'Cumplimiento de obligaciones derivadas de servicios especializados'
+  },
+  {
+    numero: '12',
+    titulo: 'Acuses Declaraciones ISR Retenido (Buzón Tributario)',
+    descripcion: 'Acuses de presentación y pago del ISR por sueldos y salarios; notificaciones del Buzón Tributario activo (Art. 17-K CFF) y papeles de trabajo del cálculo entregado.',
+    tipo: 'Acuse SAT',
+    frecuencia: 'Mensual',
+    retencion: '5 años',
+    evidencia: 'Resultado fiscal entregado al cliente y obligación cumplida'
+  },
+  {
+    numero: '13',
+    titulo: 'Reporte de Incidencias del Cliente con Sello de Tiempo',
+    descripcion: 'Insumo del cliente con altas, bajas, faltas, horas extra, vacaciones, comisiones, recibido por portal o correo con sello de tiempo verificable y firma del responsable autorizado.',
+    tipo: 'Insumo del cliente',
+    frecuencia: 'Por periodo',
+    retencion: '5 años',
+    evidencia: 'Trazabilidad del insumo que originó el procesamiento'
+  },
+  {
+    numero: '14',
+    titulo: 'Conciliaciones y Layout de Dispersión Bancaria',
+    descripcion: 'Layout bancario de dispersión, conciliación tres puntos (cliente / despacho / banco), comprobantes de transferencia y reporte de pagos no aplicados o devueltos.',
+    tipo: 'Reporte financiero',
+    frecuencia: 'Por periodo',
+    retencion: '5 años',
+    evidencia: 'Cierre financiero verificable del servicio'
+  },
+  {
+    numero: '15',
+    titulo: 'Declaración Informativa de Beneficiarios Controladores',
+    descripcion: 'Identificación de beneficiarios controladores del cliente conforme a los artículos 32-B Quáter y Quinquies del CFF, expediente con datos verificados y reporte ante el SAT cuando aplique.',
+    tipo: 'Declaración SAT',
+    frecuencia: 'Anual o ante cambios',
+    retencion: '5 años',
+    evidencia: 'Cumplimiento de transparencia corporativa'
+  },
+  {
+    numero: '16',
     titulo: 'Minutas y Comunicaciones Formales',
-    descripcion: 'Minutas de juntas mensuales, correos formales, tickets de soporte y reportes ejecutivos enviados al cliente.',
+    descripcion: 'Minutas de juntas mensuales con cliente, correos formales, tickets de soporte y reportes ejecutivos del periodo; evidencia de relación comercial sostenida y entregables consultivos.',
     tipo: 'Comunicación',
     frecuencia: 'Continua',
     retencion: '5 años',
@@ -457,7 +513,7 @@ const CUMPLIMIENTO_FISCAL = [
 const Dashboard: React.FC = () => {
   const [periodo, setPeriodo] = useState<string>('Abril 2026');
   const [filtroEstatus, setFiltroEstatus] = useState<string>('todos');
-  const [pestana, setPestana] = useState<'operativo' | 'materialidad'>('operativo');
+  const [pestana, setPestana] = useState<'operativo' | 'materialidad' | 'reportes'>('operativo');
   const [sortKey, setSortKey] = useState<SortKey>('nombre');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
@@ -601,7 +657,7 @@ const Dashboard: React.FC = () => {
             padding: '14px 0',
             marginRight: 32,
             marginBottom: -1,
-            fontSize: 11,
+            fontSize: 14,
             fontFamily: FONT,
             fontWeight: 700,
             cursor: 'pointer',
@@ -621,7 +677,7 @@ const Dashboard: React.FC = () => {
             padding: '14px 0',
             marginRight: 32,
             marginBottom: -1,
-            fontSize: 11,
+            fontSize: 14,
             fontFamily: FONT,
             fontWeight: 700,
             cursor: 'pointer',
@@ -631,6 +687,26 @@ const Dashboard: React.FC = () => {
         >
           Estrategias de Materialidad
         </button>
+        <button
+          onClick={() => setPestana('reportes')}
+          style={{
+            backgroundColor: 'transparent',
+            color: pestana === 'reportes' ? C.coral : C.inkSoft,
+            border: 'none',
+            borderBottom: pestana === 'reportes' ? `2px solid ${C.coral}` : '2px solid transparent',
+            padding: '14px 0',
+            marginRight: 32,
+            marginBottom: -1,
+            fontSize: 14,
+            fontFamily: FONT,
+            fontWeight: 700,
+            cursor: 'pointer',
+            textTransform: 'uppercase',
+            letterSpacing: '2px'
+          }}
+        >
+          Reporte a Clientes
+        </button>
       </div>
 
       {/* CONTENIDO PESTAÑA OPERATIVO */}
@@ -638,31 +714,33 @@ const Dashboard: React.FC = () => {
       <div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0, marginBottom: 48, borderTop: `1px solid ${C.rule}`, borderBottom: `1px solid ${C.rule}` }}>
-        <KPI titulo="Cumplimiento SLA" valor={kpis.slaProm.toFixed(1)} unidad="%" meta="meta ≥ 95" estado={kpis.slaProm >= 95 ? 'ok' : 'alerta'} divider />
-        <KPI titulo="Timbrado CFDI" valor={kpis.timbradoProm.toFixed(1)} unidad="%" meta="meta ≥ 99" estado={kpis.timbradoProm >= 99 ? 'ok' : 'alerta'} divider />
-        <KPI titulo="Variación vs Presupuesto" valor={'+' + kpis.variacionProm.toFixed(1)} unidad="%" meta="meta ≤ 3.0" estado={kpis.variacionProm <= 3 ? 'ok' : 'alerta'} divider />
-        <KPI titulo="Margen Operativo" valor={kpis.margen.toFixed(1)} unidad="%" meta={formatMXN(kpis.feeTotal - kpis.costoTotal)} estado={kpis.margen >= 40 ? 'ok' : 'alerta'} />
+        <KPI titulo="Cumplimiento SLA" valor={kpis.slaProm.toFixed(1)} unidad="%" meta="meta ≥ 95" estado={kpis.slaProm >= 95 ? 'ok' : 'alerta'} semaforo={kpis.slaProm >= 90 ? 'verde' : kpis.slaProm >= 85 ? 'amarillo' : 'rojo'} divider />
+        <KPI titulo="Timbrado CFDI" valor={kpis.timbradoProm.toFixed(1)} unidad="%" meta="meta ≥ 99" estado={kpis.timbradoProm >= 99 ? 'ok' : 'alerta'} semaforo={kpis.timbradoProm >= 99 ? 'verde' : kpis.timbradoProm >= 98 ? 'amarillo' : 'rojo'} divider />
+        <KPI titulo="Variación vs Presupuesto" valor={'+' + kpis.variacionProm.toFixed(1)} unidad="%" meta="meta ≤ 3.0" estado={kpis.variacionProm <= 3 ? 'ok' : 'alerta'} semaforo={kpis.variacionProm <= 3 ? 'verde' : kpis.variacionProm <= 4 ? 'amarillo' : 'rojo'} divider />
+        <KPI titulo="Margen Operativo" valor={kpis.margen.toFixed(1)} unidad="%" meta={formatMXN(kpis.feeTotal - kpis.costoTotal)} estado={kpis.margen >= 40 ? 'ok' : 'alerta'} semaforo={kpis.margen >= 40 ? 'verde' : kpis.margen >= 35 ? 'amarillo' : 'rojo'} />
       </div>
 
       <Row>
         <Panel titulo="Procesamiento Semanal" kicker="La Semana en Curso" flex={1.3}>
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={PROCESAMIENTO_SEMANAL} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+          <ResponsiveContainer width="100%" height={270}>
+            <BarChart data={PROCESAMIENTO_SEMANAL} margin={{ top: 28, right: 10, left: -15, bottom: 0 }}>
               <CartesianGrid strokeDasharray="1 3" stroke={C.rule} vertical={false} />
-              <XAxis dataKey="dia" stroke={C.inkMute} style={{ fontSize: 10, fontFamily: FONT }} axisLine={{ stroke: C.ink }} tickLine={false} />
-              <YAxis stroke={C.inkMute} style={{ fontSize: 10, fontFamily: FONT }} axisLine={false} tickLine={false} />
+              <XAxis dataKey="dia" stroke={C.inkMute} style={{ fontSize: 13, fontFamily: FONT }} axisLine={{ stroke: C.ink }} tickLine={false} />
+              <YAxis stroke={C.inkMute} style={{ fontSize: 13, fontFamily: FONT }} axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: C.paperSoft }} />
-              <Legend wrapperStyle={{ fontSize: 10, fontFamily: FONT, letterSpacing: '0.5px', textTransform: 'uppercase', color: C.inkSoft }} />
+              <Legend wrapperStyle={{ fontSize: 13, fontFamily: FONT, letterSpacing: '0.5px', textTransform: 'uppercase', color: C.inkSoft }} />
               <Bar dataKey="completadas" stackId="a" fill={C.olive} name="Completadas" />
               <Bar dataKey="pendientes" stackId="a" fill={C.amber} name="Pendientes" />
-              <Bar dataKey="atrasadas" stackId="a" fill={C.coral} name="Atrasadas" />
+              <Bar dataKey="atrasadas" stackId="a" fill={C.coral} name="Atrasadas">
+                <LabelList valueAccessor={(entry: { completadas: number; pendientes: number; atrasadas: number }) => entry.completadas + entry.pendientes + entry.atrasadas} position="top" style={{ fontFamily: FONT, fontSize: 11, fontWeight: 700, fill: C.ink }} />
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </Panel>
 
         <Panel titulo="Timbrado CFDI" kicker="Seis Meses en Curva" flex={1}>
-          <ResponsiveContainer width="100%" height={240}>
-            <AreaChart data={TIMBRADO_MENSUAL} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+          <ResponsiveContainer width="100%" height={260}>
+            <AreaChart data={TIMBRADO_MENSUAL} margin={{ top: 28, right: 10, left: -15, bottom: 0 }}>
               <defs>
                 <linearGradient id="coralGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={C.coral} stopOpacity={0.35} />
@@ -670,10 +748,12 @@ const Dashboard: React.FC = () => {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="1 3" stroke={C.rule} vertical={false} />
-              <XAxis dataKey="mes" stroke={C.inkMute} style={{ fontSize: 10, fontFamily: FONT }} axisLine={{ stroke: C.ink }} tickLine={false} />
-              <YAxis domain={[97, 100]} stroke={C.inkMute} style={{ fontSize: 10, fontFamily: FONT }} axisLine={false} tickLine={false} />
+              <XAxis dataKey="mes" stroke={C.inkMute} style={{ fontSize: 13, fontFamily: FONT }} axisLine={{ stroke: C.ink }} tickLine={false} />
+              <YAxis domain={[97, 100]} ticks={[97, 98, 99, 100]} stroke={C.inkMute} style={{ fontSize: 13, fontFamily: FONT }} axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} />
-              <Area type="monotone" dataKey="porcentaje" stroke={C.coral} strokeWidth={2.5} fill="url(#coralGrad)" name="% Exitoso" />
+              <Area type="monotone" dataKey="porcentaje" stroke={C.coral} strokeWidth={2.5} fill="url(#coralGrad)" name="% Exitoso">
+                <LabelList dataKey="porcentaje" position="top" formatter={(v: number) => `${v.toFixed(1)}%`} style={{ fontFamily: FONT, fontSize: 11, fontWeight: 700, fill: C.crimson }} />
+              </Area>
             </AreaChart>
           </ResponsiveContainer>
         </Panel>
@@ -681,15 +761,19 @@ const Dashboard: React.FC = () => {
 
       <Row>
         <Panel titulo="Nómina Real vs Presupuesto" kicker="La Brecha del Semestre" flex={1.3}>
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={VARIACION_MENSUAL} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+          <ResponsiveContainer width="100%" height={270}>
+            <BarChart data={VARIACION_MENSUAL} margin={{ top: 28, right: 10, left: 10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="1 3" stroke={C.rule} vertical={false} />
-              <XAxis dataKey="mes" stroke={C.inkMute} style={{ fontSize: 10, fontFamily: FONT }} axisLine={{ stroke: C.ink }} tickLine={false} />
-              <YAxis stroke={C.inkMute} style={{ fontSize: 10, fontFamily: FONT }} axisLine={false} tickLine={false} tickFormatter={(v: number) => (v / 1000000).toFixed(1) + 'M'} />
+              <XAxis dataKey="mes" stroke={C.inkMute} style={{ fontSize: 13, fontFamily: FONT }} axisLine={{ stroke: C.ink }} tickLine={false} />
+              <YAxis stroke={C.inkMute} style={{ fontSize: 13, fontFamily: FONT }} axisLine={false} tickLine={false} tickFormatter={(v: number) => (v / 1000000).toFixed(1) + 'M'} />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: C.paperSoft }} />
-              <Legend wrapperStyle={{ fontSize: 10, fontFamily: FONT, letterSpacing: '0.5px', textTransform: 'uppercase' }} />
-              <Bar dataKey="presupuesto" fill={C.inkSoft} name="Presupuesto" />
-              <Bar dataKey="real" fill={C.coral} name="Real" />
+              <Legend wrapperStyle={{ fontSize: 13, fontFamily: FONT, letterSpacing: '0.5px', textTransform: 'uppercase' }} />
+              <Bar dataKey="presupuesto" fill={C.inkSoft} name="Presupuesto">
+                <LabelList dataKey="presupuesto" position="top" formatter={(v: number) => `${(v / 1000000).toFixed(1)}M`} style={{ fontFamily: FONT, fontSize: 10, fontWeight: 700, fill: C.inkSoft }} />
+              </Bar>
+              <Bar dataKey="real" fill={C.coral} name="Real">
+                <LabelList dataKey="real" position="top" formatter={(v: number) => `${(v / 1000000).toFixed(1)}M`} style={{ fontFamily: FONT, fontSize: 10, fontWeight: 700, fill: C.crimson }} />
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </Panel>
@@ -698,8 +782,8 @@ const Dashboard: React.FC = () => {
           <ResponsiveContainer width="100%" height={240}>
             <RadarChart data={CUMPLIMIENTO_FISCAL}>
               <PolarGrid stroke={C.rule} />
-              <PolarAngleAxis dataKey="entidad" tick={{ fill: C.inkSoft, fontSize: 10, fontFamily: FONT }} />
-              <PolarRadiusAxis domain={[90, 100]} tick={{ fill: C.inkMute, fontSize: 9, fontFamily: FONT }} axisLine={false} />
+              <PolarAngleAxis dataKey="entidad" tick={{ fill: C.inkSoft, fontSize: 13, fontFamily: FONT }} />
+              <PolarRadiusAxis domain={[90, 100]} tick={{ fill: C.inkMute, fontSize: 12, fontFamily: FONT }} axisLine={false} />
               <Radar name="Cumplimiento" dataKey="cumplimiento" stroke={C.coral} fill={C.coral} fillOpacity={0.25} strokeWidth={2} />
               <Tooltip content={<CustomTooltip />} />
             </RadarChart>
@@ -712,12 +796,12 @@ const Dashboard: React.FC = () => {
           <ResponsiveContainer width="100%" height={400}>
             <BarChart data={rentabilidadPorCliente} layout="vertical" margin={{ top: 10, right: 40, left: 10, bottom: 10 }}>
               <CartesianGrid strokeDasharray="1 3" stroke={C.rule} horizontal={false} />
-              <XAxis type="number" stroke={C.inkMute} style={{ fontSize: 10, fontFamily: FONT }} axisLine={{ stroke: C.ink }} tickLine={false} tickFormatter={(v: number) => v + '%'} domain={[0, 80]} />
+              <XAxis type="number" stroke={C.inkMute} style={{ fontSize: 13, fontFamily: FONT }} axisLine={{ stroke: C.ink }} tickLine={false} tickFormatter={(v: number) => v + '%'} domain={[0, 80]} />
               <YAxis
                 type="category"
                 dataKey="nombre"
                 stroke={C.inkSoft}
-                style={{ fontSize: 9, fontFamily: FONT }}
+                style={{ fontSize: 12, fontFamily: FONT }}
                 axisLine={false}
                 tickLine={false}
                 width={180}
@@ -728,7 +812,7 @@ const Dashboard: React.FC = () => {
                 <LabelList
                   dataKey="margen"
                   position="right"
-                  style={{ fontFamily: FONT, fontSize: 10, fontWeight: 700, fill: C.ink }}
+                  style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, fill: C.ink }}
                   formatter={(v: number) => v + '%'}
                 />
               </Bar>
@@ -757,7 +841,7 @@ const Dashboard: React.FC = () => {
                         fill={C.ink}
                         textAnchor={x > cx ? 'start' : 'end'}
                         dominantBaseline="central"
-                        style={{ fontSize: 10, fontFamily: FONT, fontWeight: 700 }}
+                        style={{ fontSize: 13, fontFamily: FONT, fontWeight: 700 }}
                       >
                         {`${name} · ${(percent * 100).toFixed(0)}%`}
                       </text>
@@ -777,15 +861,12 @@ const Dashboard: React.FC = () => {
       </Row>
 
       <div style={{ marginTop: 16 }}>
-        <div style={{ fontFamily: FONT, fontSize: 9, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.coral, marginBottom: 4, fontWeight: 700 }}>
+        <div style={{ fontFamily: FONT, fontSize: 12, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.coral, marginBottom: 4, fontWeight: 700 }}>
           Los Indicadores del Servicio
         </div>
-        <h2 style={{ fontFamily: FONT, fontSize: 28, fontWeight: 700, margin: 0, color: C.ink, letterSpacing: '-0.6px', marginBottom: 6 }}>
+        <h2 style={{ fontFamily: FONT, fontSize: 28, fontWeight: 700, margin: 0, color: C.ink, letterSpacing: '-0.6px', marginBottom: 24 }}>
           KPIs de Calidad y Cumplimiento
         </h2>
-        <div style={{ fontFamily: FONT, fontSize: 13, color: C.inkSoft, marginBottom: 24, fontWeight: 400 }}>
-          Service Quality & Compliance KPIs · Los cinco indicadores que definen la reputación del despacho.
-        </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 0, borderTop: `1px solid ${C.rule}`, borderBottom: `1px solid ${C.rule}` }}>
           <KPIDetalle numero="01" titulo="Exactitud de Nómina" subtitulo="Payroll Accuracy Rate" valor="99.4" unidad="%" meta="meta ≥ 99.5%" descripcion="Recibos sin errores sobre el total emitido." estado="alerta" divider />
@@ -797,15 +878,12 @@ const Dashboard: React.FC = () => {
       </div>
 
       <div style={{ marginTop: 48 }}>
-        <div style={{ fontFamily: FONT, fontSize: 9, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.coral, marginBottom: 4, fontWeight: 700 }}>
+        <div style={{ fontFamily: FONT, fontSize: 12, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.coral, marginBottom: 4, fontWeight: 700 }}>
           El Registro
         </div>
-        <h2 style={{ fontFamily: FONT, fontSize: 28, fontWeight: 700, margin: 0, color: C.ink, letterSpacing: '-0.6px', marginBottom: 6 }}>
+        <h2 style={{ fontFamily: FONT, fontSize: 28, fontWeight: 700, margin: 0, color: C.ink, letterSpacing: '-0.6px', marginBottom: 20 }}>
           Cartera de Clientes
         </h2>
-        <div style={{ fontFamily: FONT, fontSize: 13, color: C.inkSoft, marginBottom: 20, fontWeight: 400 }}>
-          Un retrato operativo completo de {CLIENTES.length} cuentas en gestión.
-        </div>
 
         <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: `1px solid ${C.rule}` }}>
           {(['todos', 'ok', 'riesgo', 'critico'] as const).map(f => (
@@ -820,7 +898,7 @@ const Dashboard: React.FC = () => {
                 padding: '10px 20px 10px 0',
                 marginRight: 24,
                 marginBottom: -1,
-                fontSize: 10,
+                fontSize: 13,
                 fontFamily: FONT,
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -858,7 +936,7 @@ const Dashboard: React.FC = () => {
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = C.ruleSoft)}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = idx % 2 === 0 ? 'transparent' : C.paperSoft)}
                 >
-                  <td style={{ ...tdStyle, fontFamily: FONT, fontWeight: 700, fontSize: 12, color: C.ink }}>{c.nombre}</td>
+                  <td style={{ ...tdStyle, fontFamily: FONT, fontWeight: 700, fontSize: 14, color: C.ink }}>{c.nombre}</td>
                   <td style={tdStyleNum}>{formatNum(c.empleados)}</td>
                   <td style={{ ...tdStyle, color: C.inkSoft, fontFamily: FONT }}>{c.periodicidad}</td>
                   <td style={{ ...tdStyleNum, color: c.slaCumplido >= 95 ? C.olive : c.slaCumplido >= 85 ? C.amber : C.crimson, fontWeight: 700 }}>
@@ -874,7 +952,7 @@ const Dashboard: React.FC = () => {
                   <td style={{ ...tdStyleNum, color: C.coral, fontWeight: 700 }}>{margen}%</td>
                   <td style={tdStyle}>
                     <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', backgroundColor: estatusColor(c.estatus), marginRight: 8, verticalAlign: 'middle' }} />
-                    <span style={{ fontSize: 10, fontFamily: FONT, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: C.inkSoft }}>
+                    <span style={{ fontSize: 15, fontFamily: FONT, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: C.inkSoft }}>
                       {estatusTexto(c.estatus)}
                     </span>
                   </td>
@@ -890,6 +968,11 @@ const Dashboard: React.FC = () => {
       {/* CONTENIDO PESTAÑA MATERIALIDAD */}
       {pestana === 'materialidad' && (
         <PestanaMaterialidad />
+      )}
+
+      {/* CONTENIDO PESTAÑA REPORTE A CLIENTES */}
+      {pestana === 'reportes' && (
+        <PestanaReportes periodo={periodo} formatMXN={formatMXN} formatNum={formatNum} />
       )}
 
       {clienteSeleccionado && (
@@ -1102,7 +1185,7 @@ const SortableTh: React.FC<SortableThProps> = ({ label, k, sortKey, sortDir, onC
       }}
     >
       {label}
-      <span style={{ marginLeft: 6, fontSize: 9, opacity: active ? 1 : 0.35 }}>
+      <span style={{ marginLeft: 6, fontSize: 14, opacity: active ? 1 : 0.35 }}>
         {active ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}
       </span>
     </th>
@@ -1113,7 +1196,7 @@ const thStyle: CSSProperties = {
   textAlign: 'left',
   padding: '12px 12px 12px 0',
   color: C.inkMute,
-  fontSize: 9,
+  fontSize: 14,
   fontWeight: 700,
   textTransform: 'uppercase',
   letterSpacing: '2px',
@@ -1124,14 +1207,14 @@ const thStyle: CSSProperties = {
 const tdStyle: CSSProperties = {
   padding: '14px 12px 14px 0',
   color: C.inkSoft,
-  fontSize: 12,
+  fontSize: 14,
   fontFamily: FONT
 };
 
 const tdStyleNum: CSSProperties = {
   padding: '14px 12px 14px 0',
   color: C.ink,
-  fontSize: 12,
+  fontSize: 14,
   fontFamily: FONT,
   fontVariantNumeric: 'tabular-nums',
   fontWeight: 700
@@ -1177,7 +1260,10 @@ const motorEstrategias = (actividad: string): Estrategia[] => {
     return [
       { titulo: 'Servicios de Capacitación y Cursos', descripcion: 'Diseño e impartición de cursos de actualización docente, talleres pedagógicos y programas de formación continua para personal académico y administrativo.', ejemploCFDI: 'Curso de actualización en metodologías pedagógicas · Programa de formación docente Q4', riesgoFiscal: 'Bajo' },
       { titulo: 'Consultoría en Procesos Educativos', descripcion: 'Asesoría en diseño curricular, evaluación de programas académicos, acreditaciones (CONACYT, COPAES) y mejora institucional.', ejemploCFDI: 'Consultoría para evaluación curricular del programa de licenciatura · Servicios de asesoría académica', riesgoFiscal: 'Bajo' },
-      { titulo: 'Auditoría de Cumplimiento Académico-Laboral', descripcion: 'Revisión integral de contratos docentes, esquemas de honorarios, NOM-035, prima de riesgo IMSS y obligaciones STPS en planteles educativos. Informe ejecutivo con plan de remediación.', ejemploCFDI: 'Servicios de auditoría de cumplimiento laboral educativo · Diagnóstico NOM-035 docente', riesgoFiscal: 'Bajo' }
+      { titulo: 'Auditoría de Cumplimiento Académico-Laboral', descripcion: 'Revisión integral de contratos docentes, esquemas de honorarios, NOM-035, prima de riesgo IMSS y obligaciones STPS en planteles educativos. Informe ejecutivo con plan de remediación.', ejemploCFDI: 'Servicios de auditoría de cumplimiento laboral educativo · Diagnóstico NOM-035 docente', riesgoFiscal: 'Bajo' },
+      { titulo: 'Diseño y Producción de Material Didáctico', descripcion: 'Elaboración de manuales, contenidos digitales, evaluaciones estandarizadas y plataformas LMS personalizadas para programas académicos del cliente.', ejemploCFDI: 'Servicios de diseño de material didáctico · Producción de contenido para LMS institucional', riesgoFiscal: 'Bajo' },
+      { titulo: 'Consultoría en Vinculación Académica y Empresarial', descripcion: 'Diseño de programas duales, prácticas profesionales, convenios con empresas y modelos de educación basados en competencias.', ejemploCFDI: 'Consultoría en programas de vinculación académica · Diseño de modelo dual', riesgoFiscal: 'Bajo' },
+      { titulo: 'Servicios de Investigación Educativa', descripcion: 'Estudios de seguimiento de egresados, evaluación de impacto institucional, diagnóstico de desempeño docente y reporte de indicadores académicos.', ejemploCFDI: 'Servicios de investigación educativa · Estudio de seguimiento de egresados', riesgoFiscal: 'Bajo' }
     ];
   }
 
@@ -1185,7 +1271,10 @@ const motorEstrategias = (actividad: string): Estrategia[] => {
     return [
       { titulo: 'Auditoría de Seguridad e Higiene en Obra', descripcion: 'Inspección de cumplimiento NOM-031-STPS, revisión de equipos de protección personal, análisis de accidentabilidad por proyecto y emisión de plan de mitigación de riesgos.', ejemploCFDI: 'Servicios de auditoría en seguridad e higiene de obra · Inspección NOM-031-STPS', riesgoFiscal: 'Bajo' },
       { titulo: 'Consultoría en Gestión Laboral de Construcción', descripcion: 'Asesoría en cumplimiento STPS, programas de seguridad e higiene, capacitación obligatoria DC-3 y mitigación de riesgos laborales por proyecto.', ejemploCFDI: 'Consultoría en seguridad e higiene industrial · Programa DC-3 de capacitación', riesgoFiscal: 'Bajo' },
-      { titulo: 'Servicios de Outsourcing Especializado (REPSE)', descripcion: 'Servicios complementarios bajo registro REPSE para áreas no esenciales de la operación constructiva: vigilancia, limpieza de obra y logística de materiales.', ejemploCFDI: 'Servicios especializados REPSE · Apoyo logístico y de vigilancia en obra', riesgoFiscal: 'Medio' }
+      { titulo: 'Servicios de Outsourcing Especializado (REPSE)', descripcion: 'Servicios complementarios bajo registro REPSE para áreas no esenciales de la operación constructiva: vigilancia, limpieza de obra y logística de materiales.', ejemploCFDI: 'Servicios especializados REPSE · Apoyo logístico y de vigilancia en obra', riesgoFiscal: 'Medio' },
+      { titulo: 'Capacitación Técnica DC-3 y Certificaciones', descripcion: 'Programas de capacitación obligatoria DC-3 para operadores de maquinaria, soldadores, electricistas y personal de altura conforme al Reglamento Federal de Seguridad y Salud en el Trabajo.', ejemploCFDI: 'Capacitación DC-3 obligatoria · Certificación de personal de altura y soldadura', riesgoFiscal: 'Bajo' },
+      { titulo: 'Consultoría en Sistemas de Gestión ISO 9001 y 45001', descripcion: 'Diagnóstico, diseño e implementación de sistemas de gestión de calidad y seguridad ocupacional para empresas constructoras y desarrolladoras.', ejemploCFDI: 'Consultoría en sistema de gestión ISO 45001 · Implementación ISO 9001 en obra', riesgoFiscal: 'Bajo' },
+      { titulo: 'Servicios Logísticos y Acopio de Materiales', descripcion: 'Gestión logística de acopio, almacenaje y abastecimiento de materiales para proyectos constructivos, con control de inventarios y reportes ejecutivos.', ejemploCFDI: 'Servicios logísticos de acopio de materiales · Control de inventarios de obra', riesgoFiscal: 'Medio' }
     ];
   }
 
@@ -1193,7 +1282,10 @@ const motorEstrategias = (actividad: string): Estrategia[] => {
     return [
       { titulo: 'Capacitación en Servicio y Manejo de Alimentos', descripcion: 'Programas de capacitación NOM-251 (manejo higiénico), atención al cliente, mixología y servicio de mesa para personal operativo.', ejemploCFDI: 'Curso de manejo higiénico de alimentos NOM-251 · Capacitación en servicio al cliente', riesgoFiscal: 'Bajo' },
       { titulo: 'Consultoría en Cumplimiento Sanitario y Laboral', descripcion: 'Asesoría en distintivo H, protocolos COFEPRIS, gestión de PTU específica del sector y cumplimiento de propinas.', ejemploCFDI: 'Consultoría en distintivo H y protocolos sanitarios · Asesoría laboral del sector', riesgoFiscal: 'Bajo' },
-      { titulo: 'Auditoría Operativa y de Calidad de Servicio', descripcion: 'Mystery shopper, revisión de cumplimiento de turnos y séptimo día, evaluación de propinas, diagnóstico de calidad de servicio y plan de mejora operativa.', ejemploCFDI: 'Servicios de auditoría operativa restaurantera · Diagnóstico de calidad de servicio', riesgoFiscal: 'Bajo' }
+      { titulo: 'Auditoría Operativa y de Calidad de Servicio', descripcion: 'Mystery shopper, revisión de cumplimiento de turnos y séptimo día, evaluación de propinas, diagnóstico de calidad de servicio y plan de mejora operativa.', ejemploCFDI: 'Servicios de auditoría operativa restaurantera · Diagnóstico de calidad de servicio', riesgoFiscal: 'Bajo' },
+      { titulo: 'Servicios de Diseño de Menú y Costeo', descripcion: 'Diseño de carta y menú con análisis de costos, ingeniería de menú, estudio de margen por platillo y propuesta de precios estratégicos.', ejemploCFDI: 'Servicios de ingeniería de menú · Análisis de costos por platillo y propuesta de pricing', riesgoFiscal: 'Bajo' },
+      { titulo: 'Consultoría en Control de Inventarios y Mermas', descripcion: 'Implementación de sistemas de control de inventarios, análisis de mermas, conciliación de consumos y diseño de procesos de almacén.', ejemploCFDI: 'Consultoría en control de inventarios restauranteros · Análisis de mermas y conciliaciones', riesgoFiscal: 'Bajo' },
+      { titulo: 'Servicios de Marketing Gastronómico y Branding', descripcion: 'Estrategias de posicionamiento, gestión de redes sociales, diseño de campañas, fotografía gastronómica y estudios de imagen de marca.', ejemploCFDI: 'Servicios de marketing gastronómico · Campaña de branding y gestión de redes', riesgoFiscal: 'Bajo' }
     ];
   }
 
@@ -1201,7 +1293,10 @@ const motorEstrategias = (actividad: string): Estrategia[] => {
     return [
       { titulo: 'Capacitación Técnica y Certificaciones', descripcion: 'Programas DC-3 obligatorios, capacitación en operación de maquinaria, certificaciones ISO 9001 y formación en seguridad industrial.', ejemploCFDI: 'Capacitación DC-3 en operación de maquinaria · Programa ISO 9001 para personal operativo', riesgoFiscal: 'Bajo' },
       { titulo: 'Consultoría en Gestión de Riesgos Laborales', descripcion: 'Asesoría en NOM-035 (factores psicosociales), prima de riesgo IMSS, análisis de accidentabilidad y mitigación de incapacidades.', ejemploCFDI: 'Consultoría en NOM-035 · Análisis y reducción de prima de riesgo IMSS', riesgoFiscal: 'Bajo' },
-      { titulo: 'Auditoría de Riesgo de Trabajo y Prima IMSS', descripcion: 'Análisis de siniestralidad, revisión técnica de la prima de riesgo IMSS, diagnóstico de NOM-030-STPS y plan de reducción de incidentes en planta.', ejemploCFDI: 'Servicios de auditoría de riesgo de trabajo · Análisis de prima IMSS y NOM-030', riesgoFiscal: 'Bajo' }
+      { titulo: 'Auditoría de Riesgo de Trabajo y Prima IMSS', descripcion: 'Análisis de siniestralidad, revisión técnica de la prima de riesgo IMSS, diagnóstico de NOM-030-STPS y plan de reducción de incidentes en planta.', ejemploCFDI: 'Servicios de auditoría de riesgo de trabajo · Análisis de prima IMSS y NOM-030', riesgoFiscal: 'Bajo' },
+      { titulo: 'Consultoría en Lean Manufacturing y Procesos', descripcion: 'Diagnóstico de procesos productivos, diseño de células de manufactura, eliminación de desperdicios (mudas) y rediseño de flujo de planta.', ejemploCFDI: 'Consultoría en Lean Manufacturing · Diagnóstico de procesos y rediseño de flujo', riesgoFiscal: 'Bajo' },
+      { titulo: 'Servicios de Control de Calidad y Metrología', descripcion: 'Calibración de instrumentos, validación de procesos, ensayos no destructivos y emisión de certificados de calidad por lote producido.', ejemploCFDI: 'Servicios de calibración metrológica · Certificación de calidad por lote', riesgoFiscal: 'Bajo' },
+      { titulo: 'Asesoría en Compliance Sectorial e IMMEX', descripcion: 'Cumplimiento regulatorio para programas IMMEX/Maquila, certificación OEA, padrones de importadores y obligaciones aduanales del sector manufacturero.', ejemploCFDI: 'Asesoría en programa IMMEX · Consultoría en certificación OEA y padrones aduanales', riesgoFiscal: 'Medio' }
     ];
   }
 
@@ -1209,7 +1304,10 @@ const motorEstrategias = (actividad: string): Estrategia[] => {
     return [
       { titulo: 'Capacitación en Ventas y Atención al Cliente', descripcion: 'Programas de formación en técnicas de venta, servicio al cliente, manejo de objeciones y CRM para fuerza de ventas.', ejemploCFDI: 'Curso de técnicas avanzadas de venta · Capacitación en CRM y servicio al cliente', riesgoFiscal: 'Bajo' },
       { titulo: 'Consultoría en Estructura de Compensación Variable', descripcion: 'Diseño de tabuladores con esquema fijo + variable, optimización fiscal de comisiones y bonos, cumplimiento de la base de cotización mixta.', ejemploCFDI: 'Consultoría en diseño de esquemas de compensación · Asesoría fiscal de comisiones', riesgoFiscal: 'Medio' },
-      { titulo: 'Diagnóstico de Productividad y Retención Comercial', descripcion: 'Análisis de KPIs de fuerza de ventas, evaluación de rotación de personal, diseño de planes de carrera y propuestas de retención de talento clave.', ejemploCFDI: 'Servicios de diagnóstico de productividad comercial · Plan de retención de talento de ventas', riesgoFiscal: 'Bajo' }
+      { titulo: 'Diagnóstico de Productividad y Retención Comercial', descripcion: 'Análisis de KPIs de fuerza de ventas, evaluación de rotación de personal, diseño de planes de carrera y propuestas de retención de talento clave.', ejemploCFDI: 'Servicios de diagnóstico de productividad comercial · Plan de retención de talento de ventas', riesgoFiscal: 'Bajo' },
+      { titulo: 'Estudios de Mercado y Comportamiento del Consumidor', descripcion: 'Investigación cuantitativa y cualitativa de mercado, análisis de competencia, segmentación y reporte estratégico de oportunidades comerciales.', ejemploCFDI: 'Estudio de mercado y análisis de competencia · Reporte de segmentación de consumidor', riesgoFiscal: 'Bajo' },
+      { titulo: 'Consultoría en Estrategia Digital y E-commerce', descripcion: 'Diseño de estrategia omnicanal, implementación de plataforma e-commerce, integración con marketplaces y análisis de conversión digital.', ejemploCFDI: 'Consultoría en estrategia digital · Implementación de plataforma e-commerce', riesgoFiscal: 'Bajo' },
+      { titulo: 'Auditoría de Cumplimiento Comercial (PROFECO)', descripcion: 'Diagnóstico de cumplimiento de NOM-051, etiquetado, garantías, publicidad y precios; mitigación de riesgos ante revisiones de PROFECO.', ejemploCFDI: 'Auditoría de cumplimiento NOM-051 y PROFECO · Diagnóstico de etiquetado y publicidad', riesgoFiscal: 'Bajo' }
     ];
   }
 
@@ -1217,7 +1315,10 @@ const motorEstrategias = (actividad: string): Estrategia[] => {
     return [
       { titulo: 'Capacitación en Seguridad Agroindustrial', descripcion: 'Programas de capacitación en manejo seguro de agroquímicos, NOM-003-STPS, primeros auxilios en campo y operación de maquinaria agrícola.', ejemploCFDI: 'Capacitación en NOM-003-STPS manejo de agroquímicos · Programa de primeros auxilios en campo', riesgoFiscal: 'Bajo' },
       { titulo: 'Consultoría en Cumplimiento Laboral del Campo', descripcion: 'Asesoría en cumplimiento de la Ley Federal del Trabajo Capítulo VIII (trabajadores del campo), prestaciones obligatorias y régimen IMSS de eventuales.', ejemploCFDI: 'Consultoría en LFT Capítulo VIII · Asesoría en prestaciones del trabajador del campo', riesgoFiscal: 'Bajo' },
-      { titulo: 'Auditoría de Cumplimiento Agrícola y Estacionalidad', descripcion: 'Revisión del régimen de eventuales del campo, análisis de cuotas IMSS reducidas, dictamen de estacionalidad y plan de cumplimiento de jornaleros.', ejemploCFDI: 'Servicios de auditoría agrícola laboral · Dictamen de cumplimiento Capítulo VIII LFT', riesgoFiscal: 'Bajo' }
+      { titulo: 'Auditoría de Cumplimiento Agrícola y Estacionalidad', descripcion: 'Revisión del régimen de eventuales del campo, análisis de cuotas IMSS reducidas, dictamen de estacionalidad y plan de cumplimiento de jornaleros.', ejemploCFDI: 'Servicios de auditoría agrícola laboral · Dictamen de cumplimiento Capítulo VIII LFT', riesgoFiscal: 'Bajo' },
+      { titulo: 'Asesoría en Certificaciones de Inocuidad y SENASICA', descripcion: 'Consultoría e implementación de certificaciones Global G.A.P., México Calidad Suprema, BPA y trámites ante SENASICA para mercados de exportación.', ejemploCFDI: 'Asesoría en certificación Global G.A.P. · Trámite SENASICA para exportación', riesgoFiscal: 'Bajo' },
+      { titulo: 'Consultoría en Sostenibilidad y Trazabilidad', descripcion: 'Implementación de sistemas de trazabilidad de cosecha, huella hídrica, cumplimiento ESG y reportes ambientales para mercados internacionales.', ejemploCFDI: 'Consultoría en trazabilidad agrícola · Reporte ESG y huella hídrica de cosecha', riesgoFiscal: 'Bajo' },
+      { titulo: 'Diagnóstico de Productividad Agrícola', descripcion: 'Análisis de rendimientos por hectárea, diagnóstico de tecnificación, evaluación de eficiencia hídrica y plan de mejora de productividad.', ejemploCFDI: 'Diagnóstico de productividad agrícola · Análisis de rendimientos y eficiencia hídrica', riesgoFiscal: 'Bajo' }
     ];
   }
 
@@ -1225,7 +1326,10 @@ const motorEstrategias = (actividad: string): Estrategia[] => {
     return [
       { titulo: 'Capacitación NOM en Salud y Seguridad', descripcion: 'Programas de capacitación NOM-016, NOM-019, manejo de RPBI, bioseguridad y atención de emergencias para personal clínico y administrativo.', ejemploCFDI: 'Capacitación NOM-016 manejo de RPBI · Programa de bioseguridad hospitalaria', riesgoFiscal: 'Bajo' },
       { titulo: 'Consultoría en Cumplimiento Sanitario y Laboral', descripcion: 'Asesoría en COFEPRIS para personal, gestión de cédulas profesionales, certificación CSG y cumplimiento de prima de riesgo de clase IV.', ejemploCFDI: 'Consultoría en cumplimiento COFEPRIS · Asesoría en certificación CSG', riesgoFiscal: 'Bajo' },
-      { titulo: 'Auditoría de Bioseguridad y Manejo de RPBI', descripcion: 'Revisión técnica del manejo de Residuos Peligrosos Biológico-Infecciosos, dictamen de cumplimiento NOM-087-ECOL-SSA1 y plan de remediación de bioseguridad.', ejemploCFDI: 'Servicios de auditoría de bioseguridad · Dictamen NOM-087-ECOL-SSA1 manejo de RPBI', riesgoFiscal: 'Bajo' }
+      { titulo: 'Auditoría de Bioseguridad y Manejo de RPBI', descripcion: 'Revisión técnica del manejo de Residuos Peligrosos Biológico-Infecciosos, dictamen de cumplimiento NOM-087-ECOL-SSA1 y plan de remediación de bioseguridad.', ejemploCFDI: 'Servicios de auditoría de bioseguridad · Dictamen NOM-087-ECOL-SSA1 manejo de RPBI', riesgoFiscal: 'Bajo' },
+      { titulo: 'Servicios de Acreditación Hospitalaria CSG', descripcion: 'Asesoría e implementación de estándares para certificación del Consejo de Salubridad General, gestión de auditorías de seguimiento y plan de cierre de hallazgos.', ejemploCFDI: 'Servicios de acreditación CSG · Implementación de estándares hospitalarios', riesgoFiscal: 'Bajo' },
+      { titulo: 'Consultoría en Farmacovigilancia y Manejo de Insumos', descripcion: 'Diseño de programas de farmacovigilancia, control de inventario de medicamentos controlados, cumplimiento NOM-220 y reportes a COFEPRIS.', ejemploCFDI: 'Consultoría en farmacovigilancia NOM-220 · Control de medicamentos controlados', riesgoFiscal: 'Bajo' },
+      { titulo: 'Diseño de Protocolos de Atención y Calidad', descripcion: 'Elaboración de guías clínicas, protocolos de atención por especialidad, indicadores de calidad asistencial y reporte ejecutivo de desempeño médico.', ejemploCFDI: 'Diseño de protocolos clínicos · Indicadores de calidad asistencial por especialidad', riesgoFiscal: 'Bajo' }
     ];
   }
 
@@ -1233,7 +1337,10 @@ const motorEstrategias = (actividad: string): Estrategia[] => {
     return [
       { titulo: 'Capacitación en Seguridad Vial y NOM-087', descripcion: 'Programas DC-3 obligatorios, capacitación en NOM-087-SCT-2017 (transporte de materiales peligrosos), manejo defensivo y bitácora electrónica.', ejemploCFDI: 'Capacitación NOM-087-SCT en transporte · Programa de manejo defensivo DC-3', riesgoFiscal: 'Bajo' },
       { titulo: 'Consultoría en Cumplimiento SCT y Laboral', descripcion: 'Asesoría en regulación SCT, gestión de licencias federales, programas de fatiga y descanso, y cumplimiento de horas-hombre regulatorias.', ejemploCFDI: 'Consultoría en cumplimiento SCT · Asesoría en programas de fatiga y descanso', riesgoFiscal: 'Bajo' },
-      { titulo: 'Auditoría de Programas de Fatiga y Bitácoras', descripcion: 'Revisión de bitácoras electrónicas de operadores, análisis de cumplimiento de horas-hombre regulatorias, dictamen de fatiga y descanso conforme a SCT.', ejemploCFDI: 'Servicios de auditoría de seguridad vial · Dictamen de fatiga y bitácoras electrónicas', riesgoFiscal: 'Bajo' }
+      { titulo: 'Auditoría de Programas de Fatiga y Bitácoras', descripcion: 'Revisión de bitácoras electrónicas de operadores, análisis de cumplimiento de horas-hombre regulatorias, dictamen de fatiga y descanso conforme a SCT.', ejemploCFDI: 'Servicios de auditoría de seguridad vial · Dictamen de fatiga y bitácoras electrónicas', riesgoFiscal: 'Bajo' },
+      { titulo: 'Asesoría en Carta Porte y Cumplimiento Fiscal', descripcion: 'Consultoría en emisión correcta del CFDI con Complemento Carta Porte 3.1, validación de claves, conciliación de manifiestos y mitigación de sanciones SAT-SICT.', ejemploCFDI: 'Asesoría en Complemento Carta Porte 3.1 · Conciliación de manifiestos de carga', riesgoFiscal: 'Bajo' },
+      { titulo: 'Diagnóstico de Mantenimiento Preventivo de Flota', descripcion: 'Diseño de plan de mantenimiento preventivo, gestión de bitácoras de servicio, análisis de costos de operación por unidad y proyección de renovación de flota.', ejemploCFDI: 'Diagnóstico de mantenimiento preventivo · Plan de renovación y costos de operación', riesgoFiscal: 'Bajo' },
+      { titulo: 'Consultoría en Geolocalización y Telemetría', descripcion: 'Implementación de sistemas GPS, telemetría de comportamiento del operador, análisis de rutas óptimas y reportes de eficiencia para clientes corporativos.', ejemploCFDI: 'Consultoría en telemetría vehicular · Implementación de GPS y análisis de rutas', riesgoFiscal: 'Bajo' }
     ];
   }
 
@@ -1241,14 +1348,20 @@ const motorEstrategias = (actividad: string): Estrategia[] => {
     return [
       { titulo: 'Capacitación Especializada y Certificaciones', descripcion: 'Programas de actualización profesional, certificaciones internacionales, soft skills y desarrollo de liderazgo para equipos consultivos.', ejemploCFDI: 'Programa de certificación profesional · Capacitación en habilidades de liderazgo', riesgoFiscal: 'Bajo' },
       { titulo: 'Consultoría en Diseño Organizacional', descripcion: 'Asesoría en estructura de compensación competitiva, esquemas de retención de talento, plan de carrera y evaluación de desempeño.', ejemploCFDI: 'Consultoría en diseño organizacional · Asesoría en planes de retención de talento', riesgoFiscal: 'Bajo' },
-      { titulo: 'Auditoría y Diagnóstico Laboral Integral', descripcion: 'Revisión de cumplimiento STPS, NOM-035, prima de riesgo IMSS, esquemas de subcontratación y emisión de informe ejecutivo con plan de remediación.', ejemploCFDI: 'Servicios de auditoría laboral · Diagnóstico de cumplimiento STPS y NOM-035', riesgoFiscal: 'Bajo' }
+      { titulo: 'Auditoría y Diagnóstico Laboral Integral', descripcion: 'Revisión de cumplimiento STPS, NOM-035, prima de riesgo IMSS, esquemas de subcontratación y emisión de informe ejecutivo con plan de remediación.', ejemploCFDI: 'Servicios de auditoría laboral · Diagnóstico de cumplimiento STPS y NOM-035', riesgoFiscal: 'Bajo' },
+      { titulo: 'Servicios de Implementación de Sistemas de Información', descripcion: 'Análisis funcional, implementación de ERP/CRM, automatización de procesos y migración de datos para áreas de operaciones del cliente.', ejemploCFDI: 'Servicios de implementación de sistema ERP · Migración de datos y automatización', riesgoFiscal: 'Bajo' },
+      { titulo: 'Servicios de Marketing B2B y Generación de Leads', descripcion: 'Diseño de campañas de marketing especializado, generación calificada de leads, contenidos thought leadership y nurturing comercial.', ejemploCFDI: 'Servicios de marketing B2B · Generación de leads y campañas digitales', riesgoFiscal: 'Bajo' },
+      { titulo: 'Asesoría en Compliance Fiscal y Anti-Lavado (PLD)', descripcion: 'Diagnóstico de cumplimiento ante UIF, diseño de manuales PLD/FT, capacitación en prevención de lavado de dinero y reportes regulatorios obligatorios.', ejemploCFDI: 'Asesoría en compliance PLD · Manual y capacitación de prevención de lavado', riesgoFiscal: 'Medio' }
     ];
   }
 
   return [
     { titulo: 'Capacitación Laboral y Desarrollo de Personal', descripcion: 'Programas DC-3 obligatorios, capacitación en NOM-035, desarrollo de habilidades blandas y formación continua.', ejemploCFDI: 'Programa DC-3 de capacitación obligatoria · Curso NOM-035 factores psicosociales', riesgoFiscal: 'Bajo' },
     { titulo: 'Consultoría en Cumplimiento Laboral y Fiscal', descripcion: 'Asesoría en obligaciones STPS, IMSS, SAT, INFONAVIT, gestión de auditorías y mitigación de riesgos regulatorios.', ejemploCFDI: 'Consultoría en cumplimiento laboral · Asesoría regulatoria integral', riesgoFiscal: 'Bajo' },
-    { titulo: 'Diagnóstico de Cumplimiento STPS-IMSS-INFONAVIT', descripcion: 'Análisis integral de cumplimiento ante autoridades laborales y de seguridad social, revisión de obligaciones, identificación de contingencias y plan de remediación.', ejemploCFDI: 'Servicios de diagnóstico de cumplimiento STPS-IMSS-INFONAVIT · Análisis de contingencias laborales', riesgoFiscal: 'Bajo' }
+    { titulo: 'Diagnóstico de Cumplimiento STPS-IMSS-INFONAVIT', descripcion: 'Análisis integral de cumplimiento ante autoridades laborales y de seguridad social, revisión de obligaciones, identificación de contingencias y plan de remediación.', ejemploCFDI: 'Servicios de diagnóstico de cumplimiento STPS-IMSS-INFONAVIT · Análisis de contingencias laborales', riesgoFiscal: 'Bajo' },
+    { titulo: 'Servicios de Reclutamiento y Selección Especializada', descripcion: 'Búsqueda de talento clave, evaluación psicométrica, assessment de competencias y proceso de selección por competencias para posiciones críticas.', ejemploCFDI: 'Servicios de reclutamiento y selección · Búsqueda de talento clave por competencias', riesgoFiscal: 'Bajo' },
+    { titulo: 'Servicios de Onboarding y Desarrollo de Talento', descripcion: 'Diseño de programas de inducción, planes de desarrollo individual, mentoría ejecutiva y matrices de sucesión para posiciones de liderazgo.', ejemploCFDI: 'Servicios de onboarding ejecutivo · Diseño de plan de sucesión y desarrollo de talento', riesgoFiscal: 'Bajo' },
+    { titulo: 'Diagnóstico de Clima Laboral y Cultura Organizacional', descripcion: 'Aplicación de encuestas de clima, análisis de cultura, focus groups, NOM-035 y plan de mejora con métricas de seguimiento ejecutivo.', ejemploCFDI: 'Diagnóstico de clima laboral y cultura · Encuesta NOM-035 y plan de mejora', riesgoFiscal: 'Bajo' }
   ];
 };
 
@@ -1830,10 +1943,13 @@ const PestanaMaterialidad: React.FC = () => {
   );
 };
 
-const KPI: React.FC<KPIProps> = ({ titulo, valor, unidad, meta, estado, divider }) => (
+const KPI: React.FC<KPIProps> = ({ titulo, valor, unidad, meta, estado, semaforo, divider }) => (
   <div style={{ padding: '28px 24px', borderRight: divider ? `1px solid ${C.rule}` : 'none' }}>
-    <div style={{ fontFamily: FONT, fontSize: 9, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.inkMute, marginBottom: 12, fontWeight: 700 }}>
-      {titulo}
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
+      <div style={{ fontFamily: FONT, fontSize: 12, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.inkMute, fontWeight: 700 }}>
+        {titulo}
+      </div>
+      <Semaforo estado={semaforo} />
     </div>
     <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
       <div style={{ fontFamily: FONT, fontSize: 48, fontWeight: 700, color: estado === 'ok' ? C.ink : C.coral, lineHeight: 1, letterSpacing: '-1.5px', fontVariantNumeric: 'tabular-nums' }}>
@@ -1843,24 +1959,57 @@ const KPI: React.FC<KPIProps> = ({ titulo, valor, unidad, meta, estado, divider 
         {unidad}
       </div>
     </div>
-    <div style={{ fontFamily: FONT, fontSize: 11, color: C.inkMute, marginTop: 8 }}>
+    <div style={{ fontFamily: FONT, fontSize: 14, color: C.inkMute, marginTop: 8 }}>
       {meta}
     </div>
   </div>
+);
+
+const Semaforo: React.FC<{ estado: EstadoSemaforo }> = ({ estado }) => {
+  const verde = '#5fa850';
+  const amarillo = '#e6a83a';
+  const rojo = '#e0492c';
+  return (
+    <div style={{
+      display: 'inline-flex',
+      gap: 7,
+      padding: '6px 9px',
+      backgroundColor: 'rgba(26, 24, 20, 0.7)',
+      borderRadius: 16,
+      alignItems: 'center',
+      flexShrink: 0
+    }}>
+      <Luz color={verde} activa={estado === 'verde'} />
+      <Luz color={amarillo} activa={estado === 'amarillo'} />
+      <Luz color={rojo} activa={estado === 'rojo'} />
+    </div>
+  );
+};
+
+const Luz: React.FC<{ color: string; activa: boolean }> = ({ color, activa }) => (
+  <div style={{
+    width: 11,
+    height: 11,
+    borderRadius: '50%',
+    backgroundColor: activa ? color : 'rgba(255, 255, 255, 0.12)',
+    boxShadow: activa
+      ? `0 0 4px ${color}, 0 0 8px ${color}, 0 0 14px ${color}`
+      : 'inset 0 0 2px rgba(0,0,0,0.4)'
+  }} />
 );
 
 const KPIDetalle: React.FC<KPIDetalleProps> = ({ numero, titulo, subtitulo, valor, unidad, meta, descripcion, estado, divider }) => {
   const color = estado === 'ok' ? C.olive : C.coral;
   return (
     <div style={{ padding: '24px 20px', borderRight: divider ? `1px solid ${C.rule}` : 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ fontFamily: FONT, fontSize: 10, fontWeight: 700, color: C.coral, letterSpacing: '1px' }}>
+      <div style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, color: C.coral, letterSpacing: '1px' }}>
         {numero}
       </div>
       <div>
-        <div style={{ fontFamily: FONT, fontSize: 12, fontWeight: 700, color: C.ink, lineHeight: 1.2 }}>
+        <div style={{ fontFamily: FONT, fontSize: 15, fontWeight: 700, color: C.ink, lineHeight: 1.2 }}>
           {titulo}
         </div>
-        <div style={{ fontFamily: FONT, fontSize: 9, color: C.inkMute, marginTop: 2, fontWeight: 400 }}>
+        <div style={{ fontFamily: FONT, fontSize: 12, color: C.inkMute, marginTop: 2, fontWeight: 400 }}>
           {subtitulo}
         </div>
       </div>
@@ -1872,10 +2021,10 @@ const KPIDetalle: React.FC<KPIDetalleProps> = ({ numero, titulo, subtitulo, valo
           {unidad}
         </div>
       </div>
-      <div style={{ fontFamily: FONT, fontSize: 10, color: C.inkMute, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
+      <div style={{ fontFamily: FONT, fontSize: 13, color: C.inkMute, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
         {meta}
       </div>
-      <div style={{ fontFamily: FONT, fontSize: 11, color: C.inkSoft, lineHeight: 1.4, marginTop: 4, paddingTop: 8, borderTop: `1px solid ${C.ruleSoft}` }}>
+      <div style={{ fontFamily: FONT, fontSize: 14, color: C.inkSoft, lineHeight: 1.4, marginTop: 4, paddingTop: 8, borderTop: `1px solid ${C.ruleSoft}` }}>
         {descripcion}
       </div>
     </div>
@@ -1884,7 +2033,7 @@ const KPIDetalle: React.FC<KPIDetalleProps> = ({ numero, titulo, subtitulo, valo
 
 const Panel: React.FC<PanelProps> = ({ titulo, kicker, flex, children }) => (
   <div style={{ flex: flex, padding: '0 20px 0 0' }}>
-    <div style={{ fontFamily: FONT, fontSize: 9, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.coral, marginBottom: 4, fontWeight: 700 }}>
+    <div style={{ fontFamily: FONT, fontSize: 12, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.coral, marginBottom: 4, fontWeight: 700 }}>
       {kicker}
     </div>
     <h3 style={{ fontFamily: FONT, fontSize: 20, fontWeight: 700, margin: 0, color: C.ink, letterSpacing: '-0.4px', marginBottom: 16 }}>
@@ -1944,5 +2093,704 @@ const tdCSF = (header: boolean, width?: string): CSSProperties => ({
   verticalAlign: 'top',
   width
 });
+
+// =====================================================
+// PESTAÑA: REPORTE A CLIENTES
+// =====================================================
+
+const MESES_12 = ['May 25', 'Jun 25', 'Jul 25', 'Ago 25', 'Sep 25', 'Oct 25', 'Nov 25', 'Dic 25', 'Ene 26', 'Feb 26', 'Mar 26', 'Abr 26'];
+
+const seedFromString = (s: string): number => {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+};
+
+const mulberry32 = (seed: number) => {
+  let a = seed;
+  return () => {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+};
+
+interface DesgloseMes {
+  mes: string;
+  nomina: number;
+  comisiones: number;
+  bonos: number;
+  destajos: number;
+  otros: number;
+}
+
+interface ReporteData {
+  // Sección 1
+  nominaTotalMes: number;
+  desgloseMes: DesgloseMes;
+  variacionAcumulada: { mes: string; variacion: number }[];
+  // Sección 2
+  bajasMes: number;
+  costoBajasMes: number;
+  pctRotacionAcum: number;
+  bajasAcum: { mes: string; bajas: number }[];
+  costoAcum: { mes: string; costo: number }[];
+  rotacionAcum: { mes: string; pct: number }[];
+  // Sección 3
+  desgloseCostosActual: { name: string; value: number; color: string }[];
+  desgloseCostosAcum: { mes: string; nomina: number; imss: number; infonavit: number; isr: number; isn: number; otros: number }[];
+}
+
+const generarDataReporte = (c: Cliente): ReporteData => {
+  const rnd = mulberry32(seedFromString(c.id));
+  // Nómina mensual aproximada: empleados * salario promedio mensual (México ~16-22k bruto)
+  const salarioProm = 14000 + Math.floor(rnd() * 9000);
+  const nominaTotalMes = c.empleados * salarioProm;
+
+  // Sección 1: Variaciones del mes
+  const pctComisiones = 0.025 + rnd() * 0.06;
+  const pctBonos = 0.01 + rnd() * 0.04;
+  const pctDestajos = c.periodicidad === 'Semanal' ? 0.01 + rnd() * 0.05 : rnd() * 0.02;
+  const pctOtros = 0.005 + rnd() * 0.015;
+
+  const desgloseMes: DesgloseMes = {
+    mes: MESES_12[11],
+    nomina: Math.round(nominaTotalMes * (1 - pctComisiones - pctBonos - pctDestajos - pctOtros)),
+    comisiones: Math.round(nominaTotalMes * pctComisiones),
+    bonos: Math.round(nominaTotalMes * pctBonos),
+    destajos: Math.round(nominaTotalMes * pctDestajos),
+    otros: Math.round(nominaTotalMes * pctOtros)
+  };
+
+  const variacionBase = c.variacion;
+  const variacionAcumulada = MESES_12.map((mes, i) => {
+    const ruido = (rnd() - 0.5) * 3;
+    const tendencia = (i / 11) * (variacionBase - 2);
+    return { mes, variacion: Number(Math.max(0, 1.5 + tendencia + ruido).toFixed(1)) };
+  });
+
+  // Sección 2: Rotación
+  const tasaMensual = c.estatus === 'critico' ? 0.045 : c.estatus === 'riesgo' ? 0.028 : 0.015;
+  const bajasMes = Math.max(1, Math.round(c.empleados * tasaMensual * (0.7 + rnd() * 0.6)));
+  const finiquitoProm = 18000 + Math.floor(rnd() * 12000);
+  const costoBajasMes = bajasMes * finiquitoProm;
+
+  const bajasAcum = MESES_12.map(mes => {
+    const b = Math.max(1, Math.round(c.empleados * tasaMensual * (0.6 + rnd() * 0.8)));
+    return { mes, bajas: b };
+  });
+  const totalBajasYTD = bajasAcum.reduce((s, m) => s + m.bajas, 0);
+  const pctRotacionAcum = Number(((totalBajasYTD / c.empleados) * 100).toFixed(1));
+
+  const costoAcum = bajasAcum.map(m => ({ mes: m.mes, costo: m.bajas * (finiquitoProm + Math.floor((rnd() - 0.5) * 4000)) }));
+
+  let acumBajas = 0;
+  const rotacionAcum = bajasAcum.map(m => {
+    acumBajas += m.bajas;
+    return { mes: m.mes, pct: Number(((acumBajas / c.empleados) * 100).toFixed(2)) };
+  });
+
+  // Sección 3: Desglose de costos (proporciones típicas México)
+  const total = nominaTotalMes;
+  const pNomina = 0.62 + (rnd() - 0.5) * 0.04;
+  const pIMSS = 0.135 + (rnd() - 0.5) * 0.02;
+  const pInfonavit = 0.05 + (rnd() - 0.5) * 0.01;
+  const pISR = 0.10 + (rnd() - 0.5) * 0.02;
+  const pISN = 0.025 + (rnd() - 0.5) * 0.005;
+  const pOtros = Math.max(0.02, 1 - (pNomina + pIMSS + pInfonavit + pISR + pISN));
+
+  const desgloseCostosActual = [
+    { name: 'Nómina Neta', value: Math.round(total * pNomina), color: C.coral },
+    { name: 'IMSS Patronal', value: Math.round(total * pIMSS), color: C.olive },
+    { name: 'INFONAVIT', value: Math.round(total * pInfonavit), color: C.amber },
+    { name: 'ISR Retenido', value: Math.round(total * pISR), color: C.inkSoft },
+    { name: 'ISN Estatal', value: Math.round(total * pISN), color: C.oliveSoft },
+    { name: 'Otros (SAR, Prima)', value: Math.round(total * pOtros), color: C.amberSoft }
+  ];
+
+  const desgloseCostosAcum = MESES_12.map((mes, i) => {
+    const factor = 0.92 + (i / 11) * 0.16 + (rnd() - 0.5) * 0.04;
+    const t = total * factor;
+    return {
+      mes,
+      nomina: Math.round(t * pNomina),
+      imss: Math.round(t * pIMSS),
+      infonavit: Math.round(t * pInfonavit),
+      isr: Math.round(t * pISR),
+      isn: Math.round(t * pISN),
+      otros: Math.round(t * pOtros)
+    };
+  });
+
+  return {
+    nominaTotalMes,
+    desgloseMes,
+    variacionAcumulada,
+    bajasMes,
+    costoBajasMes,
+    pctRotacionAcum,
+    bajasAcum,
+    costoAcum,
+    rotacionAcum,
+    desgloseCostosActual,
+    desgloseCostosAcum
+  };
+};
+
+const interpretacionVariaciones = (c: Cliente, d: ReporteData): { titulo: string; cuerpo: string; riesgos: string[]; oportunidades: string[] } => {
+  const totalIngresosVariables = d.desgloseMes.comisiones + d.desgloseMes.bonos + d.desgloseMes.destajos + d.desgloseMes.otros;
+  const pctVariable = (totalIngresosVariables / (d.desgloseMes.nomina + totalIngresosVariables)) * 100;
+  const ultimaVar = d.variacionAcumulada[d.variacionAcumulada.length - 1].variacion;
+  const primeraVar = d.variacionAcumulada[0].variacion;
+  const tendencia = ultimaVar - primeraVar;
+
+  const tono = c.estatus === 'critico' ? 'crítica' : c.estatus === 'riesgo' ? 'requiere atención' : 'controlada';
+
+  return {
+    titulo: `Variabilidad ${tono} en la composición de la nómina`,
+    cuerpo: `Durante el mes, ${pctVariable.toFixed(1)}% del costo total correspondió a percepciones variables (comisiones, bonos, destajos y otros), con un peso significativo del rubro ${d.desgloseMes.comisiones > d.desgloseMes.bonos ? 'comisiones' : 'bonos'}. La variación acumulada en doce meses cerró en ${ultimaVar.toFixed(1)}% sobre presupuesto, con una ${tendencia > 0 ? 'tendencia al alza' : 'tendencia descendente'} de ${Math.abs(tendencia).toFixed(1)} puntos respecto al inicio del periodo.`,
+    riesgos: [
+      `Composición variable elevada (${pctVariable.toFixed(1)}%) puede comprometer la previsibilidad del flujo de nómina si no se proyecta con base mensual.`,
+      tendencia > 2 ? 'La variación acumulada muestra una pendiente preocupante que sugiere desviaciones recurrentes sobre el presupuesto autorizado.' : 'La variación se mantiene dentro de rangos manejables, sin desviaciones materiales recurrentes.',
+      'Posible exposición a observaciones del SAT por integración variable a la base de cotización IMSS si no se documentan los conceptos como ingresos exentos o gravables conforme a la LISR.'
+    ],
+    oportunidades: [
+      'Diseñar un esquema de compensación variable con tope mensual y reglas de capping para mitigar la dispersión.',
+      `Renegociar el presupuesto de nómina con un techo de variación de ${Math.max(3, Math.round(ultimaVar - 1))}% para alinear expectativas con dirección.`,
+      'Implementar un tablero de validación previo al cierre que detecte movimientos atípicos en bonos y destajos antes del timbrado.'
+    ]
+  };
+};
+
+const interpretacionRotacion = (c: Cliente, d: ReporteData): { titulo: string; cuerpo: string; riesgos: string[]; oportunidades: string[] } => {
+  const promBajasMes = d.bajasAcum.reduce((s, m) => s + m.bajas, 0) / d.bajasAcum.length;
+  const totalCostoYTD = d.costoAcum.reduce((s, m) => s + m.costo, 0);
+  const nivel = d.pctRotacionAcum > 25 ? 'elevada' : d.pctRotacionAcum > 15 ? 'moderada' : 'controlada';
+
+  return {
+    titulo: `Rotación ${nivel} con impacto financiero acumulado`,
+    cuerpo: `La rotación acumulada en doce meses alcanzó ${d.pctRotacionAcum.toFixed(1)}% sobre la plantilla promedio de ${c.empleados} colaboradores, con un promedio de ${promBajasMes.toFixed(1)} bajas mensuales. El costo financiero asociado a finiquitos, indemnizaciones y reposiciones ascendió a un acumulado de ${(totalCostoYTD / 1000000).toFixed(2)} millones de pesos en el periodo.`,
+    riesgos: [
+      `Una rotación de ${d.pctRotacionAcum.toFixed(1)}% ${d.pctRotacionAcum > 20 ? 'supera el referente sectorial y' : ''} compromete la curva de aprendizaje y la productividad esperada.`,
+      'Costos ocultos no contabilizados: capacitación, baja productividad inicial y pérdida de conocimiento operativo.',
+      d.pctRotacionAcum > 20 ? 'Riesgo reputacional ante el IMSS por alta rotación que puede activar revisiones de prima de riesgo de trabajo.' : 'Estabilidad razonable de plantilla; mantener monitoreo trimestral para evitar deterioro.'
+    ],
+    oportunidades: [
+      'Implementar entrevistas de salida estructuradas para identificar causas raíz y diseñar plan de retención focalizado.',
+      `Estimar ahorro potencial de ${formatearMillones(totalCostoYTD * 0.35)} mediante reducción de 35% en finiquitos no programados con un programa de permanencia.`,
+      'Diseñar bono de antigüedad escalonado con costo marginal inferior al costo de reposición observado.'
+    ]
+  };
+};
+
+const interpretacionCostos = (c: Cliente, d: ReporteData): { titulo: string; cuerpo: string; riesgos: string[]; oportunidades: string[] } => {
+  const total = d.desgloseCostosActual.reduce((s, p) => s + p.value, 0);
+  const cargasSociales = d.desgloseCostosActual.filter(p => ['IMSS Patronal', 'INFONAVIT', 'ISR Retenido', 'ISN Estatal', 'Otros (SAR, Prima)'].includes(p.name)).reduce((s, p) => s + p.value, 0);
+  const pctCargas = (cargasSociales / total) * 100;
+
+  return {
+    titulo: `Estructura de costos con ${pctCargas.toFixed(0)}% de cargas sociales y fiscales`,
+    cuerpo: `La nómina neta percibida por los colaboradores representa ${((d.desgloseCostosActual[0].value / total) * 100).toFixed(1)}% del costo total. Las contribuciones obligatorias (IMSS, INFONAVIT, ISN, ISR retenido y otros conceptos patronales) suman ${pctCargas.toFixed(1)}%, equivalente a ${formatearMillones(cargasSociales)} mensuales. Esta proporción es consistente con la naturaleza de la actividad económica del cliente.`,
+    riesgos: [
+      `El componente IMSS-INFONAVIT representa una exposición patrimonial significativa: cualquier observación en la prima de riesgo o en la base de cotización puede traducirse en créditos fiscales relevantes.`,
+      'El ISR retenido debe enterarse en plazos perentorios; retrasos generan actualización, recargos y multas no recuperables.',
+      'La carga del ISN estatal varía por entidad; crecimientos de plantilla en estados con tasas mayores incrementan el costo efectivo.'
+    ],
+    oportunidades: [
+      'Auditar la prima de riesgo de trabajo con metodología actuarial para detectar oportunidades de reducción ante el IMSS.',
+      'Optimizar la estructura de percepciones con herramientas legales: previsión social, fondo de ahorro y vales de despensa exentos hasta los topes UMA.',
+      `Estimar ahorro potencial anual de ${formatearMillones(cargasSociales * 12 * 0.04)} mediante un proyecto de optimización fiscal-laboral con cumplimiento estricto.`
+    ]
+  };
+};
+
+const formatearMillones = (n: number): string => {
+  const m = n / 1000000;
+  if (m >= 1) return `$${m.toFixed(2)}M MXN`;
+  return `$${(n / 1000).toFixed(0)}K MXN`;
+};
+
+const formatPctDeTotal = (v: number, d: DesgloseMes): string => {
+  const total = d.nomina + d.comisiones + d.bonos + d.destajos + d.otros;
+  const pct = (v / total) * 100;
+  return pct < 4 ? '' : `${pct.toFixed(1)}%`;
+};
+
+const formatKMXN = (v: number): string => `$${(v / 1000).toFixed(0)}K`;
+const formatMMXN = (v: number): string => `$${(v / 1000000).toFixed(1)}M`;
+
+interface PestanaReportesProps {
+  periodo: string;
+  formatMXN: (n: number) => string;
+  formatNum: (n: number) => string;
+}
+
+const PestanaReportes: React.FC<PestanaReportesProps> = ({ periodo, formatMXN, formatNum }) => {
+  const [clienteId, setClienteId] = useState<string>('');
+  const cliente = useMemo(() => CLIENTES.find(c => c.id === clienteId) || null, [clienteId]);
+  const data = useMemo(() => cliente ? generarDataReporte(cliente) : null, [cliente]);
+
+  const interpVar = useMemo(() => cliente && data ? interpretacionVariaciones(cliente, data) : null, [cliente, data]);
+  const interpRot = useMemo(() => cliente && data ? interpretacionRotacion(cliente, data) : null, [cliente, data]);
+  const interpCos = useMemo(() => cliente && data ? interpretacionCostos(cliente, data) : null, [cliente, data]);
+
+  const ReporteTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
+    if (!active || !payload || !payload.length) return null;
+    return (
+      <div style={{ backgroundColor: C.ink, padding: '10px 14px', borderRadius: 2 }}>
+        <p style={{ color: C.paper, fontFamily: FONT, fontSize: 11, fontWeight: 700, margin: 0, marginBottom: 4, letterSpacing: '0.5px', textTransform: 'uppercase' }}>{label}</p>
+        {payload.map((p, i) => (
+          <p key={i} style={{ color: p.color || C.paperSoft, fontFamily: FONT, margin: 0, fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>
+            {p.name}: {typeof p.value === 'number' ? formatMXN(p.value) : p.value}
+          </p>
+        ))}
+      </div>
+    );
+  };
+
+  const PctTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
+    if (!active || !payload || !payload.length) return null;
+    return (
+      <div style={{ backgroundColor: C.ink, padding: '10px 14px', borderRadius: 2 }}>
+        <p style={{ color: C.paper, fontFamily: FONT, fontSize: 11, fontWeight: 700, margin: 0, marginBottom: 4, letterSpacing: '0.5px', textTransform: 'uppercase' }}>{label}</p>
+        {payload.map((p, i) => (
+          <p key={i} style={{ color: p.color || C.paperSoft, fontFamily: FONT, margin: 0, fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>
+            {p.name}: {typeof p.value === 'number' ? p.value.toFixed(2) + '%' : p.value}
+          </p>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      {/* SELECTOR + DESCARGA — no se imprime */}
+      <div className="no-print" style={{ display: 'flex', alignItems: 'flex-end', gap: 24, marginBottom: 32, paddingBottom: 24, borderBottom: `1px solid ${C.rule}` }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontFamily: FONT, fontSize: 15, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.coral, marginBottom: 6, fontWeight: 700 }}>
+            Reporte Ejecutivo
+          </div>
+          <h2 style={{ fontFamily: FONT, fontSize: 28, fontWeight: 700, margin: 0, color: C.ink, letterSpacing: '-0.6px', marginBottom: 12 }}>
+            Selecciona un cliente
+          </h2>
+          <select
+            value={clienteId}
+            onChange={(e) => setClienteId(e.target.value)}
+            style={{
+              backgroundColor: C.paper,
+              color: C.ink,
+              border: `1px solid ${C.ink}`,
+              padding: '12px 16px',
+              borderRadius: 0,
+              fontSize: 17,
+              fontFamily: FONT,
+              fontWeight: 700,
+              cursor: 'pointer',
+              minWidth: 380
+            }}
+          >
+            <option value="">— Selecciona un cliente —</option>
+            {CLIENTES.map(c => (
+              <option key={c.id} value={c.id}>{c.nombre}</option>
+            ))}
+          </select>
+        </div>
+        {cliente && (
+          <button
+            onClick={() => window.print()}
+            style={{
+              backgroundColor: C.ink,
+              color: C.paper,
+              border: 'none',
+              padding: '14px 28px',
+              fontFamily: FONT,
+              fontSize: 15,
+              fontWeight: 700,
+              letterSpacing: '2px',
+              textTransform: 'uppercase',
+              cursor: 'pointer'
+            }}
+          >
+            Descargar PDF ↓
+          </button>
+        )}
+      </div>
+
+      {!cliente && (
+        <div style={{ padding: '80px 0', textAlign: 'center', color: C.inkMute, fontFamily: FONT, fontSize: 17 }}>
+          Elige un cliente del listado para generar su reporte ejecutivo personalizado.
+        </div>
+      )}
+
+      {cliente && data && interpVar && interpRot && interpCos && (
+        <div className="reporte-printable" style={{ fontFamily: FONT, color: C.ink }}>
+          {/* PORTADA / ENCABEZADO */}
+          <div style={{ borderTop: `4px solid ${C.coral}`, borderBottom: `2px solid ${C.ink}`, padding: '32px 0', marginBottom: 32 }}>
+            <div style={{ fontFamily: FONT, fontSize: 14, letterSpacing: '3px', textTransform: 'uppercase', color: C.coral, fontWeight: 700, marginBottom: 12 }}>
+              Reporte Ejecutivo Mensual · {periodo}
+            </div>
+            <h1 style={{ fontFamily: FONT, fontSize: 40, fontWeight: 700, margin: 0, color: C.ink, letterSpacing: '-1px', lineHeight: 1.05, marginBottom: 8 }}>
+              {cliente.nombre}
+            </h1>
+            <div style={{ fontFamily: FONT, fontSize: 17, color: C.inkSoft }}>
+              {FICHAS[cliente.id]?.razonSocial} · RFC {FICHAS[cliente.id]?.rfc} · {formatNum(cliente.empleados)} colaboradores · Dispersión {cliente.periodicidad}
+            </div>
+            <div style={{ display: 'flex', gap: 32, marginTop: 24 }}>
+              <ReporteKPI etiqueta="Nómina del Mes" valor={formatMXN(data.nominaTotalMes)} />
+              <ReporteKPI etiqueta="Bajas del Mes" valor={`${data.bajasMes} colaboradores`} />
+              <ReporteKPI etiqueta="Rotación YTD" valor={`${data.pctRotacionAcum.toFixed(1)}%`} acento={data.pctRotacionAcum > 20} />
+              <ReporteKPI etiqueta="Variación vs Ppto" valor={`+${data.variacionAcumulada[11].variacion.toFixed(1)}%`} acento={data.variacionAcumulada[11].variacion > 5} />
+            </div>
+          </div>
+
+          {/* SECCIÓN 1: VARIACIONES A LA NÓMINA */}
+          <ReporteSeccion numero="01" kicker="Composición y Desviaciones" titulo="Variaciones a la Nómina">
+            <p style={{ fontFamily: FONT, fontSize: 16, color: C.inkSoft, lineHeight: 1.6, margin: '0 0 24px 0' }}>
+              Análisis de la composición de las percepciones del mes y de la desviación acumulada de la nómina respecto al presupuesto autorizado, con desglose de los conceptos variables (comisiones, bonos, destajos y otros).
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 28, marginBottom: 24 }}>
+              {/* Gráfica del mes con desglose */}
+              <div>
+                <div style={{ fontFamily: FONT, fontSize: 14, letterSpacing: '2px', textTransform: 'uppercase', color: C.coral, fontWeight: 700, marginBottom: 4 }}>
+                  Mes en Curso
+                </div>
+                <h4 style={{ fontFamily: FONT, fontSize: 16, fontWeight: 700, margin: '0 0 16px 0', color: C.ink, letterSpacing: '-0.3px' }}>
+                  Desglose de percepciones · {data.desgloseMes.mes}
+                </h4>
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={[data.desgloseMes]} layout="vertical" margin={{ top: 10, right: 20, left: 0, bottom: 0 }} stackOffset="expand">
+                    <CartesianGrid strokeDasharray="1 3" stroke={C.rule} horizontal={false} />
+                    <XAxis type="number" tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} stroke={C.inkMute} style={{ fontSize: 15, fontFamily: FONT }} />
+                    <YAxis type="category" dataKey="mes" stroke={C.inkSoft} style={{ fontSize: 15, fontFamily: FONT }} />
+                    <Tooltip content={<ReporteTooltip />} cursor={{ fill: C.paperSoft }} />
+                    <Legend wrapperStyle={{ fontSize: 14, fontFamily: FONT, letterSpacing: '0.5px', textTransform: 'uppercase' }} />
+                    <Bar dataKey="nomina" stackId="a" fill={C.olive} name="Nómina base">
+                      <LabelList dataKey="nomina" position="center" formatter={(v: number) => formatPctDeTotal(v, data.desgloseMes)} style={{ fontFamily: FONT, fontSize: 12, fontWeight: 700, fill: C.paper }} />
+                    </Bar>
+                    <Bar dataKey="comisiones" stackId="a" fill={C.coral} name="Comisiones">
+                      <LabelList dataKey="comisiones" position="center" formatter={(v: number) => formatPctDeTotal(v, data.desgloseMes)} style={{ fontFamily: FONT, fontSize: 11, fontWeight: 700, fill: C.paper }} />
+                    </Bar>
+                    <Bar dataKey="bonos" stackId="a" fill={C.amber} name="Bonos">
+                      <LabelList dataKey="bonos" position="center" formatter={(v: number) => formatPctDeTotal(v, data.desgloseMes)} style={{ fontFamily: FONT, fontSize: 11, fontWeight: 700, fill: C.ink }} />
+                    </Bar>
+                    <Bar dataKey="destajos" stackId="a" fill={C.oliveSoft} name="Destajos" />
+                    <Bar dataKey="otros" stackId="a" fill={C.amberSoft} name="Otros" />
+                  </BarChart>
+                </ResponsiveContainer>
+                <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+                  <DesgloseRow color={C.olive} label="Nómina base" valor={formatMXN(data.desgloseMes.nomina)} />
+                  <DesgloseRow color={C.coral} label="Comisiones" valor={formatMXN(data.desgloseMes.comisiones)} />
+                  <DesgloseRow color={C.amber} label="Bonos" valor={formatMXN(data.desgloseMes.bonos)} />
+                  <DesgloseRow color={C.oliveSoft} label="Destajos" valor={formatMXN(data.desgloseMes.destajos)} />
+                  <DesgloseRow color={C.amberSoft} label="Otros" valor={formatMXN(data.desgloseMes.otros)} />
+                </div>
+              </div>
+
+              {/* Gráfica acumulada — % variación */}
+              <div>
+                <div style={{ fontFamily: FONT, fontSize: 14, letterSpacing: '2px', textTransform: 'uppercase', color: C.coral, fontWeight: 700, marginBottom: 4 }}>
+                  Tendencia Doce Meses
+                </div>
+                <h4 style={{ fontFamily: FONT, fontSize: 16, fontWeight: 700, margin: '0 0 16px 0', color: C.ink, letterSpacing: '-0.3px' }}>
+                  Variación acumulada vs presupuesto
+                </h4>
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={data.variacionAcumulada} margin={{ top: 24, right: 10, left: -10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="1 3" stroke={C.rule} vertical={false} />
+                    <XAxis dataKey="mes" stroke={C.inkMute} style={{ fontSize: 14, fontFamily: FONT }} />
+                    <YAxis stroke={C.inkMute} style={{ fontSize: 15, fontFamily: FONT }} tickFormatter={(v: number) => v + '%'} />
+                    <Tooltip content={<PctTooltip />} cursor={{ fill: C.paperSoft }} />
+                    <Bar dataKey="variacion" fill={C.coral} name="% Variación" maxBarSize={42}>
+                      <LabelList dataKey="variacion" position="top" formatter={(v: number) => `${v.toFixed(1)}%`} style={{ fontFamily: FONT, fontSize: 11, fontWeight: 700, fill: C.ink }} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+                <div style={{ marginTop: 12, padding: '12px 16px', backgroundColor: C.paperSoft, borderLeft: `3px solid ${C.coral}` }}>
+                  <div style={{ fontFamily: FONT, fontSize: 13, letterSpacing: '2px', textTransform: 'uppercase', color: C.coral, fontWeight: 700, marginBottom: 4 }}>Cierre del periodo</div>
+                  <div style={{ fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.ink, letterSpacing: '-0.5px', fontVariantNumeric: 'tabular-nums' }}>
+                    +{data.variacionAcumulada[11].variacion.toFixed(1)}%
+                  </div>
+                  <div style={{ fontFamily: FONT, fontSize: 15, color: C.inkSoft, marginTop: 2 }}>variación acumulada doce meses</div>
+                </div>
+              </div>
+            </div>
+
+            <BloqueIA interpretacion={interpVar} />
+          </ReporteSeccion>
+
+          {/* SECCIÓN 2: COSTO DE ROTACIÓN */}
+          <ReporteSeccion numero="02" kicker="Movimiento de Plantilla" titulo="Costo de Rotación">
+            <p style={{ fontFamily: FONT, fontSize: 16, color: C.inkSoft, lineHeight: 1.6, margin: '0 0 24px 0' }}>
+              Análisis del movimiento de plantilla durante el periodo: bajas registradas en el mes, costo financiero asociado y porcentaje acumulado de rotación en el ejercicio en curso.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0, marginBottom: 28, borderTop: `1px solid ${C.rule}`, borderBottom: `1px solid ${C.rule}` }}>
+              <ReporteKPIBig etiqueta="Bajas del Mes" valor={data.bajasMes.toString()} unidad="colaboradores" divider />
+              <ReporteKPIBig etiqueta="Costo del Mes" valor={formatMXN(data.costoBajasMes)} unidad="finiquitos + reposiciones" divider />
+              <ReporteKPIBig etiqueta="Rotación Acumulada" valor={`${data.pctRotacionAcum.toFixed(1)}%`} unidad="ejercicio en curso" acento={data.pctRotacionAcum > 20} />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24, marginBottom: 24 }}>
+              <div>
+                <div style={{ fontFamily: FONT, fontSize: 13, letterSpacing: '2px', textTransform: 'uppercase', color: C.coral, fontWeight: 700, marginBottom: 4 }}>
+                  Bajas mensuales
+                </div>
+                <h5 style={{ fontFamily: FONT, fontSize: 16, fontWeight: 700, margin: '0 0 10px 0', color: C.ink }}>
+                  Número de bajas por mes
+                </h5>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={data.bajasAcum} margin={{ top: 24, right: 5, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="1 3" stroke={C.rule} vertical={false} />
+                    <XAxis dataKey="mes" stroke={C.inkMute} style={{ fontSize: 13, fontFamily: FONT }} />
+                    <YAxis stroke={C.inkMute} style={{ fontSize: 13, fontFamily: FONT }} />
+                    <Tooltip content={<ReporteTooltip />} cursor={{ fill: C.paperSoft }} />
+                    <Bar dataKey="bajas" fill={C.coral} name="Bajas">
+                      <LabelList dataKey="bajas" position="top" style={{ fontFamily: FONT, fontSize: 11, fontWeight: 700, fill: C.ink }} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div>
+                <div style={{ fontFamily: FONT, fontSize: 13, letterSpacing: '2px', textTransform: 'uppercase', color: C.coral, fontWeight: 700, marginBottom: 4 }}>
+                  Costo mensual
+                </div>
+                <h5 style={{ fontFamily: FONT, fontSize: 16, fontWeight: 700, margin: '0 0 10px 0', color: C.ink }}>
+                  Costo financiero (MXN)
+                </h5>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={data.costoAcum} margin={{ top: 24, right: 5, left: -10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="1 3" stroke={C.rule} vertical={false} />
+                    <XAxis dataKey="mes" stroke={C.inkMute} style={{ fontSize: 13, fontFamily: FONT }} />
+                    <YAxis stroke={C.inkMute} style={{ fontSize: 13, fontFamily: FONT }} tickFormatter={(v: number) => (v / 1000).toFixed(0) + 'K'} />
+                    <Tooltip content={<ReporteTooltip />} cursor={{ fill: C.paperSoft }} />
+                    <Bar dataKey="costo" fill={C.amber} name="Costo" maxBarSize={32}>
+                      <LabelList dataKey="costo" position="top" formatter={(v: number) => formatKMXN(v)} style={{ fontFamily: FONT, fontSize: 10, fontWeight: 700, fill: C.ink }} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div>
+                <div style={{ fontFamily: FONT, fontSize: 13, letterSpacing: '2px', textTransform: 'uppercase', color: C.coral, fontWeight: 700, marginBottom: 4 }}>
+                  Rotación acumulada
+                </div>
+                <h5 style={{ fontFamily: FONT, fontSize: 16, fontWeight: 700, margin: '0 0 10px 0', color: C.ink }}>
+                  Porcentaje sobre plantilla
+                </h5>
+                <ResponsiveContainer width="100%" height={200}>
+                  <AreaChart data={data.rotacionAcum} margin={{ top: 24, right: 5, left: -10, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="rotPctGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={C.olive} stopOpacity={0.5} />
+                        <stop offset="100%" stopColor={C.olive} stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="1 3" stroke={C.rule} vertical={false} />
+                    <XAxis dataKey="mes" stroke={C.inkMute} style={{ fontSize: 13, fontFamily: FONT }} />
+                    <YAxis stroke={C.inkMute} style={{ fontSize: 13, fontFamily: FONT }} tickFormatter={(v: number) => v + '%'} />
+                    <Tooltip content={<PctTooltip />} />
+                    <Area type="monotone" dataKey="pct" stroke={C.olive} strokeWidth={2} fill="url(#rotPctGrad)" name="% Rotación">
+                      <LabelList dataKey="pct" position="top" formatter={(v: number) => `${v.toFixed(1)}%`} style={{ fontFamily: FONT, fontSize: 10, fontWeight: 700, fill: C.ink }} />
+                    </Area>
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <BloqueIA interpretacion={interpRot} />
+          </ReporteSeccion>
+
+          {/* SECCIÓN 3: DESGLOSE DE COSTOS */}
+          <ReporteSeccion numero="03" kicker="Estructura del Costo" titulo="Desglose de Costos de Nómina">
+            <p style={{ fontFamily: FONT, fontSize: 16, color: C.inkSoft, lineHeight: 1.6, margin: '0 0 24px 0' }}>
+              Composición del costo total de nómina por concepto: nómina neta percibida por colaboradores, contribuciones obligatorias al IMSS, INFONAVIT, ISR retenido, ISN estatal y otras cargas patronales.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 28, marginBottom: 24 }}>
+              <div>
+                <div style={{ fontFamily: FONT, fontSize: 14, letterSpacing: '2px', textTransform: 'uppercase', color: C.coral, fontWeight: 700, marginBottom: 4 }}>
+                  Composición del Mes
+                </div>
+                <h4 style={{ fontFamily: FONT, fontSize: 16, fontWeight: 700, margin: '0 0 16px 0', color: C.ink, letterSpacing: '-0.3px' }}>
+                  Distribución por concepto
+                </h4>
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie
+                      data={data.desgloseCostosActual}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={105}
+                      paddingAngle={2}
+                      dataKey="value"
+                      label={(props: { name: string; percent: number; x: number; y: number; cx: number }) => {
+                        const { percent, x, y, cx } = props;
+                        return (
+                          <text x={x} y={y} fill={C.ink} textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" style={{ fontSize: 14, fontFamily: FONT, fontWeight: 700 }}>
+                            {`${(percent * 100).toFixed(0)}%`}
+                          </text>
+                        );
+                      }}
+                      labelLine={{ stroke: C.inkSoft, strokeWidth: 0.5 }}
+                    >
+                      {data.desgloseCostosActual.map((entry, i) => (
+                        <Cell key={i} fill={entry.color} stroke={C.paper} strokeWidth={2} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<ReporteTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div style={{ marginTop: 8 }}>
+                  {data.desgloseCostosActual.map((p, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: i < data.desgloseCostosActual.length - 1 ? `1px solid ${C.ruleSoft}` : 'none', fontFamily: FONT, fontSize: 15 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ width: 10, height: 10, backgroundColor: p.color, display: 'inline-block' }} />
+                        <span style={{ color: C.ink, fontWeight: 700 }}>{p.name}</span>
+                      </span>
+                      <span style={{ color: C.ink, fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>{formatMXN(p.value)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontFamily: FONT, fontSize: 14, letterSpacing: '2px', textTransform: 'uppercase', color: C.coral, fontWeight: 700, marginBottom: 4 }}>
+                  Acumulado Doce Meses
+                </div>
+                <h4 style={{ fontFamily: FONT, fontSize: 16, fontWeight: 700, margin: '0 0 16px 0', color: C.ink, letterSpacing: '-0.3px' }}>
+                  Evolución por concepto
+                </h4>
+                <ResponsiveContainer width="100%" height={320}>
+                  <BarChart data={data.desgloseCostosAcum} margin={{ top: 28, right: 5, left: -10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="1 3" stroke={C.rule} vertical={false} />
+                    <XAxis dataKey="mes" stroke={C.inkMute} style={{ fontSize: 13, fontFamily: FONT }} />
+                    <YAxis stroke={C.inkMute} style={{ fontSize: 13, fontFamily: FONT }} tickFormatter={(v: number) => (v / 1000000).toFixed(1) + 'M'} />
+                    <Tooltip content={<ReporteTooltip />} cursor={{ fill: C.paperSoft }} />
+                    <Legend wrapperStyle={{ fontSize: 13, fontFamily: FONT, letterSpacing: '0.5px', textTransform: 'uppercase' }} />
+                    <Bar dataKey="nomina" stackId="b" fill={C.coral} name="Nómina" />
+                    <Bar dataKey="imss" stackId="b" fill={C.olive} name="IMSS" />
+                    <Bar dataKey="infonavit" stackId="b" fill={C.amber} name="INFONAVIT" />
+                    <Bar dataKey="isr" stackId="b" fill={C.inkSoft} name="ISR" />
+                    <Bar dataKey="isn" stackId="b" fill={C.oliveSoft} name="ISN" />
+                    <Bar dataKey="otros" stackId="b" fill={C.amberSoft} name="Otros">
+                      <LabelList valueAccessor={(entry: { nomina: number; imss: number; infonavit: number; isr: number; isn: number; otros: number }) => formatMMXN(entry.nomina + entry.imss + entry.infonavit + entry.isr + entry.isn + entry.otros)} position="top" style={{ fontFamily: FONT, fontSize: 10, fontWeight: 700, fill: C.ink }} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <BloqueIA interpretacion={interpCos} />
+          </ReporteSeccion>
+
+          {/* PIE DE PÁGINA DEL REPORTE */}
+          <div style={{ marginTop: 48, paddingTop: 24, borderTop: `2px solid ${C.ink}`, fontFamily: FONT, fontSize: 14, color: C.inkMute, lineHeight: 1.6 }}>
+            <div style={{ fontFamily: FONT, fontSize: 13, letterSpacing: '2px', textTransform: 'uppercase', color: C.coral, fontWeight: 700, marginBottom: 6 }}>
+              Aviso del Despacho
+            </div>
+            Reporte generado por Gustavo Robles Nóminas para uso exclusivo de {cliente.nombre}. Las interpretaciones cualitativas fueron elaboradas con asistencia de inteligencia artificial sobre la base de los datos operativos del cliente; toda decisión derivada del presente documento debe validarse con el ejecutivo de cuenta asignado.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ReporteKPI: React.FC<{ etiqueta: string; valor: string; acento?: boolean }> = ({ etiqueta, valor, acento = false }) => (
+  <div style={{ flex: 1 }}>
+    <div style={{ fontFamily: FONT, fontSize: 13, letterSpacing: '2px', textTransform: 'uppercase', color: C.inkMute, fontWeight: 700, marginBottom: 6 }}>
+      {etiqueta}
+    </div>
+    <div style={{ fontFamily: FONT, fontSize: 24, fontWeight: 700, color: acento ? C.coral : C.ink, letterSpacing: '-0.5px', fontVariantNumeric: 'tabular-nums' }}>
+      {valor}
+    </div>
+  </div>
+);
+
+const ReporteKPIBig: React.FC<{ etiqueta: string; valor: string; unidad: string; divider?: boolean; acento?: boolean }> = ({ etiqueta, valor, unidad, divider = false, acento = false }) => (
+  <div style={{ padding: '24px 28px', borderRight: divider ? `1px solid ${C.rule}` : 'none' }}>
+    <div style={{ fontFamily: FONT, fontSize: 13, letterSpacing: '2px', textTransform: 'uppercase', color: C.inkMute, fontWeight: 700, marginBottom: 10 }}>
+      {etiqueta}
+    </div>
+    <div style={{ fontFamily: FONT, fontSize: 32, fontWeight: 700, color: acento ? C.coral : C.ink, letterSpacing: '-0.8px', lineHeight: 1, fontVariantNumeric: 'tabular-nums', marginBottom: 6 }}>
+      {valor}
+    </div>
+    <div style={{ fontFamily: FONT, fontSize: 14, color: C.inkMute, fontWeight: 400 }}>
+      {unidad}
+    </div>
+  </div>
+);
+
+const ReporteSeccion: React.FC<{ numero: string; kicker: string; titulo: string; children: React.ReactNode }> = ({ numero, kicker, titulo, children }) => (
+  <section className="reporte-seccion" style={{ marginBottom: 56, paddingBottom: 32, borderBottom: `1px solid ${C.rule}` }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 24, marginBottom: 20 }}>
+      <div style={{ fontFamily: FONT, fontSize: 56, fontWeight: 700, color: C.coral, letterSpacing: '-2px', lineHeight: 0.9 }}>
+        {numero}
+      </div>
+      <div>
+        <div style={{ fontFamily: FONT, fontSize: 14, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.coral, fontWeight: 700, marginBottom: 4 }}>
+          {kicker}
+        </div>
+        <h3 style={{ fontFamily: FONT, fontSize: 26, fontWeight: 700, margin: 0, color: C.ink, letterSpacing: '-0.6px' }}>
+          {titulo}
+        </h3>
+      </div>
+    </div>
+    {children}
+  </section>
+);
+
+const DesgloseRow: React.FC<{ color: string; label: string; valor: string }> = ({ color, label, valor }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: FONT, fontSize: 14 }}>
+    <span style={{ width: 10, height: 10, backgroundColor: color, display: 'inline-block', flexShrink: 0 }} />
+    <span style={{ color: C.inkSoft, flex: 1 }}>{label}</span>
+    <span style={{ color: C.ink, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{valor}</span>
+  </div>
+);
+
+const BloqueIA: React.FC<{ interpretacion: { titulo: string; cuerpo: string; riesgos: string[]; oportunidades: string[] } }> = ({ interpretacion }) => (
+  <div style={{ marginTop: 16, backgroundColor: C.paperSoft, padding: '24px 28px', borderLeft: `3px solid ${C.coral}` }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+      <span style={{ fontFamily: FONT, fontSize: 12, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.coral, fontWeight: 700, padding: '4px 8px', border: `1px solid ${C.coral}` }}>
+        Análisis
+      </span>
+      <h5 style={{ fontFamily: FONT, fontSize: 16, fontWeight: 700, margin: 0, color: C.ink, letterSpacing: '-0.3px' }}>
+        {interpretacion.titulo}
+      </h5>
+    </div>
+    <p style={{ fontFamily: FONT, fontSize: 16, lineHeight: 1.65, color: C.ink, margin: '0 0 18px 0' }}>
+      {interpretacion.cuerpo}
+    </p>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+      <div>
+        <div style={{ fontFamily: FONT, fontSize: 13, letterSpacing: '2px', textTransform: 'uppercase', color: C.coral, fontWeight: 700, marginBottom: 8 }}>
+          Riesgos Identificados
+        </div>
+        <ul style={{ fontFamily: FONT, fontSize: 15, color: C.inkSoft, margin: 0, paddingLeft: 16, lineHeight: 1.6 }}>
+          {interpretacion.riesgos.map((r, i) => (
+            <li key={i} style={{ marginBottom: 6 }}>{r}</li>
+          ))}
+        </ul>
+      </div>
+      <div>
+        <div style={{ fontFamily: FONT, fontSize: 13, letterSpacing: '2px', textTransform: 'uppercase', color: C.olive, fontWeight: 700, marginBottom: 8 }}>
+          Oportunidades
+        </div>
+        <ul style={{ fontFamily: FONT, fontSize: 15, color: C.inkSoft, margin: 0, paddingLeft: 16, lineHeight: 1.6 }}>
+          {interpretacion.oportunidades.map((o, i) => (
+            <li key={i} style={{ marginBottom: 6 }}>{o}</li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  </div>
+);
 
 export default Dashboard;
