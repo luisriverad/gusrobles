@@ -110,6 +110,25 @@ const C = {
 
 const FONT = 'Arial, sans-serif';
 
+const seedFromString = (s: string): number => {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+};
+
+const mulberry32 = (seed: number) => {
+  let a = seed;
+  return () => {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+};
+
 const CLIENTES: Cliente[] = [
   { id: 'C01', nombre: 'Manufacturas del Norte SA', empleados: 142, periodicidad: 'Semanal', fee: 28500, costoOp: 14200, slaCumplido: 98, timbrado: 100, variacion: 2.1, estatus: 'ok' },
   { id: 'C02', nombre: 'Constructora Hermosillo', empleados: 87, periodicidad: 'Semanal', fee: 18900, costoOp: 10500, slaCumplido: 92, timbrado: 99.2, variacion: 4.8, estatus: 'ok' },
@@ -320,29 +339,114 @@ const FICHAS: Record<string, FichaTecnica> = {
   }
 };
 
-const PROCESAMIENTO_SEMANAL = [
-  { dia: 'Lun', completadas: 6, pendientes: 0, atrasadas: 0 },
-  { dia: 'Mar', completadas: 4, pendientes: 0, atrasadas: 0 },
-  { dia: 'Mié', completadas: 2, pendientes: 1, atrasadas: 0 },
-  { dia: 'Jue', completadas: 3, pendientes: 2, atrasadas: 0 },
-  { dia: 'Vie', completadas: 4, pendientes: 3, atrasadas: 1 },
-  { dia: 'Sáb', completadas: 0, pendientes: 2, atrasadas: 0 }
-];
+const MESES_ES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+const MES_INDEX: Record<string, number> = {
+  'Enero': 0, 'Febrero': 1, 'Marzo': 2, 'Abril': 3, 'Mayo': 4, 'Junio': 5,
+  'Julio': 6, 'Agosto': 7, 'Septiembre': 8, 'Octubre': 9, 'Noviembre': 10, 'Diciembre': 11
+};
 
-const TIMBRADO_MENSUAL = [
-  { mes: 'May', porcentaje: 99.2 }, { mes: 'Jun', porcentaje: 99.5 },
-  { mes: 'Jul', porcentaje: 99.1 }, { mes: 'Ago', porcentaje: 98.7 },
-  { mes: 'Sep', porcentaje: 99.4 }, { mes: 'Oct', porcentaje: 98.8 }
-];
+const parsePeriodo = (periodo: string): { mesIdx: number; year: number } => {
+  const [mesStr, yearStr] = periodo.split(' ');
+  return { mesIdx: MES_INDEX[mesStr] ?? 3, year: parseInt(yearStr) || 2026 };
+};
 
-const VARIACION_MENSUAL = [
-  { mes: 'May', presupuesto: 8450000, real: 8612000 },
-  { mes: 'Jun', presupuesto: 8520000, real: 8723000 },
-  { mes: 'Jul', presupuesto: 8600000, real: 8891000 },
-  { mes: 'Ago', presupuesto: 8750000, real: 9124000 },
-  { mes: 'Sep', presupuesto: 8900000, real: 9187000 },
-  { mes: 'Oct', presupuesto: 9050000, real: 9412000 }
-];
+const ventanaMeses = (periodo: string, count: number): string[] => {
+  const { mesIdx, year } = parsePeriodo(periodo);
+  const out: string[] = [];
+  for (let i = count - 1; i >= 0; i--) {
+    let m = mesIdx - i;
+    let y = year;
+    while (m < 0) { m += 12; y -= 1; }
+    out.push(`${MESES_ES[m]} ${String(y).slice(-2)}`);
+  }
+  return out;
+};
+
+const procesamientoSemanal = (periodo: string) => {
+  const rnd = mulberry32(seedFromString('proc:' + periodo));
+  const dias = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  return dias.map((dia, i) => {
+    const baseCompletadas = [6, 5, 3, 4, 5, 1][i];
+    const completadas = Math.max(0, baseCompletadas + Math.round((rnd() - 0.5) * 3));
+    const pendientes = i >= 2 ? Math.max(0, Math.round(rnd() * 3)) : 0;
+    const atrasadas = i === 4 ? Math.max(0, Math.round(rnd() * 2)) : 0;
+    return { dia, completadas, pendientes, atrasadas };
+  });
+};
+
+const timbradoMensual = (periodo: string) => {
+  const meses = ventanaMeses(periodo, 6);
+  return meses.map(mes => {
+    const rnd = mulberry32(seedFromString('timbrado:' + mes));
+    const porcentaje = Math.round((97.5 + rnd() * 2.4) * 10) / 10;
+    return { mes, porcentaje };
+  });
+};
+
+const variacionMensual = (periodo: string) => {
+  const meses = ventanaMeses(periodo, 6);
+  return meses.map((mes, i) => {
+    const rnd = mulberry32(seedFromString('variacion:' + mes));
+    const ppto = 8400000 + i * 110000 + Math.round((rnd() - 0.5) * 280000);
+    const real = ppto + Math.round((1 + rnd() * 4.5) * ppto / 100);
+    return { mes, presupuesto: ppto, real };
+  });
+};
+
+const cumplimientoFiscal = (periodo: string) => {
+  const rnd = mulberry32(seedFromString('cumpl:' + periodo));
+  const entidades = ['SAT', 'IMSS', 'INFONAVIT', 'FONACOT', 'ISR', 'Estatales'];
+  const bases = [99.1, 100, 100, 98.4, 99.8, 97.2];
+  return entidades.map((entidad, i) => ({
+    entidad,
+    cumplimiento: Math.min(100, Math.max(92, Math.round((bases[i] + (rnd() - 0.5) * 4) * 10) / 10))
+  }));
+};
+
+const ajustarClientePorPeriodo = (c: Cliente, periodo: string): Cliente => {
+  const rnd = mulberry32(seedFromString(c.id + '|' + periodo));
+  const offsets: Record<string, number> = { 'Abril 2026': 0, 'Marzo 2026': 1, 'Febrero 2026': 2, 'Enero 2026': 3 };
+  const trend = offsets[periodo] ?? 0;
+
+  const slaJitter = (rnd() - 0.5) * 5;
+  const timbradoJitter = (rnd() - 0.5) * 1.4;
+  const varJitter = (rnd() - 0.5) * 2;
+  const empleadosJitter = Math.round((rnd() - 0.5) * 6);
+  const feeJitter = Math.round((rnd() - 0.5) * 1500);
+  const costoJitter = Math.round((rnd() - 0.5) * 800);
+
+  const slaTrend = -trend * 0.4;
+  const variacionTrend = trend * 0.3;
+
+  return {
+    ...c,
+    slaCumplido: Math.round(Math.max(60, Math.min(100, c.slaCumplido + slaJitter + slaTrend))),
+    timbrado: Math.round(Math.min(100, Math.max(90, c.timbrado + timbradoJitter)) * 10) / 10,
+    variacion: Math.max(0, Math.round((c.variacion + varJitter + variacionTrend) * 10) / 10),
+    empleados: Math.max(20, c.empleados + empleadosJitter - trend * 2),
+    fee: Math.max(5000, c.fee + feeJitter),
+    costoOp: Math.max(2000, c.costoOp + costoJitter)
+  };
+};
+
+interface KPIDetallePeriodo {
+  exactitud: number;
+  cumplimientoPlazos: number;
+  costoPorRecibo: number;
+  tiempoResolucion: number;
+  erroresCumplimiento: number;
+}
+
+const kpisDetallePorPeriodo = (periodo: string): KPIDetallePeriodo => {
+  const rnd = mulberry32(seedFromString('kpisDet:' + periodo));
+  return {
+    exactitud: Math.round((98.8 + rnd() * 1.0) * 10) / 10,
+    cumplimientoPlazos: Math.round((97.0 + rnd() * 2.5) * 10) / 10,
+    costoPorRecibo: 110 + Math.round(rnd() * 18),
+    tiempoResolucion: Math.round((3.6 + rnd() * 1.4) * 10) / 10,
+    erroresCumplimiento: Math.round(rnd() * 4)
+  };
+};
 
 interface ReporteMaterialidad {
   numero: string;
@@ -501,15 +605,6 @@ const REPORTES_MATERIALIDAD: ReporteMaterialidad[] = [
   }
 ];
 
-const CUMPLIMIENTO_FISCAL = [
-  { entidad: 'SAT', cumplimiento: 99.1 },
-  { entidad: 'IMSS', cumplimiento: 100 },
-  { entidad: 'INFONAVIT', cumplimiento: 100 },
-  { entidad: 'FONACOT', cumplimiento: 98.4 },
-  { entidad: 'ISR', cumplimiento: 99.8 },
-  { entidad: 'Estatales', cumplimiento: 97.2 }
-];
-
 const Dashboard: React.FC = () => {
   const [periodo, setPeriodo] = useState<string>('Abril 2026');
   const [filtroEstatus, setFiltroEstatus] = useState<string>('todos');
@@ -529,8 +624,11 @@ const Dashboard: React.FC = () => {
     new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(n);
   const formatNum = (n: number): string => new Intl.NumberFormat('es-MX').format(n);
 
+  const clientesPeriodo = useMemo<Cliente[]>(() =>
+    CLIENTES.map(c => ajustarClientePorPeriodo(c, periodo)), [periodo]);
+
   const clientesFiltrados = useMemo<Cliente[]>(() => {
-    const base = filtroEstatus === 'todos' ? CLIENTES : CLIENTES.filter(c => c.estatus === filtroEstatus);
+    const base = filtroEstatus === 'todos' ? clientesPeriodo : clientesPeriodo.filter(c => c.estatus === filtroEstatus);
     const margenDe = (c: Cliente) => ((c.fee - c.costoOp) / c.fee) * 100;
     const get = (c: Cliente): number | string => {
       switch (sortKey) {
@@ -552,32 +650,38 @@ const Dashboard: React.FC = () => {
       return 0;
     });
     return sorted;
-  }, [filtroEstatus, sortKey, sortDir]);
+  }, [filtroEstatus, sortKey, sortDir, clientesPeriodo]);
 
   const kpis = useMemo(() => {
-    const totalEmpleados = CLIENTES.reduce((s, c) => s + c.empleados, 0);
-    const feeTotal = CLIENTES.reduce((s, c) => s + c.fee, 0);
-    const costoTotal = CLIENTES.reduce((s, c) => s + c.costoOp, 0);
+    const totalEmpleados = clientesPeriodo.reduce((s, c) => s + c.empleados, 0);
+    const feeTotal = clientesPeriodo.reduce((s, c) => s + c.fee, 0);
+    const costoTotal = clientesPeriodo.reduce((s, c) => s + c.costoOp, 0);
     const margen = ((feeTotal - costoTotal) / feeTotal) * 100;
-    const timbradoProm = CLIENTES.reduce((s, c) => s + c.timbrado, 0) / CLIENTES.length;
-    const slaProm = CLIENTES.reduce((s, c) => s + c.slaCumplido, 0) / CLIENTES.length;
-    const variacionProm = CLIENTES.reduce((s, c) => s + c.variacion, 0) / CLIENTES.length;
+    const timbradoProm = clientesPeriodo.reduce((s, c) => s + c.timbrado, 0) / clientesPeriodo.length;
+    const slaProm = clientesPeriodo.reduce((s, c) => s + c.slaCumplido, 0) / clientesPeriodo.length;
+    const variacionProm = clientesPeriodo.reduce((s, c) => s + c.variacion, 0) / clientesPeriodo.length;
     return { totalEmpleados, feeTotal, costoTotal, margen, timbradoProm, slaProm, variacionProm };
-  }, []);
+  }, [clientesPeriodo]);
 
   const rentabilidadPorCliente = useMemo(() =>
-    CLIENTES.map(c => ({
+    clientesPeriodo.map(c => ({
       nombre: c.nombre,
       margen: Number((((c.fee - c.costoOp) / c.fee) * 100).toFixed(1))
-    })).sort((a, b) => b.margen - a.margen), []);
+    })).sort((a, b) => b.margen - a.margen), [clientesPeriodo]);
 
   const distribucionPeriodicidad = useMemo(() => {
-    const grupos = CLIENTES.reduce<Record<string, number>>((acc, c) => {
+    const grupos = clientesPeriodo.reduce<Record<string, number>>((acc, c) => {
       acc[c.periodicidad] = (acc[c.periodicidad] || 0) + c.empleados;
       return acc;
     }, {});
     return Object.entries(grupos).map(([name, value]) => ({ name, value }));
-  }, []);
+  }, [clientesPeriodo]);
+
+  const procesamientoSemanalData = useMemo(() => procesamientoSemanal(periodo), [periodo]);
+  const timbradoMensualData = useMemo(() => timbradoMensual(periodo), [periodo]);
+  const variacionMensualData = useMemo(() => variacionMensual(periodo), [periodo]);
+  const cumplimientoFiscalData = useMemo(() => cumplimientoFiscal(periodo), [periodo]);
+  const kpisDetalle = useMemo(() => kpisDetallePorPeriodo(periodo), [periodo]);
 
   const estatusColor = (e: Estatus): string => e === 'ok' ? C.olive : e === 'riesgo' ? C.amber : C.coral;
   const estatusTexto = (e: Estatus): string => e === 'ok' ? 'Saludable' : e === 'riesgo' ? 'Atención' : 'Crítico';
@@ -723,7 +827,7 @@ const Dashboard: React.FC = () => {
       <Row>
         <Panel titulo="Procesamiento Semanal" kicker="La Semana en Curso" flex={1.3}>
           <ResponsiveContainer width="100%" height={270}>
-            <BarChart data={PROCESAMIENTO_SEMANAL} margin={{ top: 28, right: 10, left: -15, bottom: 0 }}>
+            <BarChart data={procesamientoSemanalData} margin={{ top: 28, right: 10, left: -15, bottom: 0 }}>
               <CartesianGrid strokeDasharray="1 3" stroke={C.rule} vertical={false} />
               <XAxis dataKey="dia" stroke={C.inkMute} style={{ fontSize: 13, fontFamily: FONT }} axisLine={{ stroke: C.ink }} tickLine={false} />
               <YAxis stroke={C.inkMute} style={{ fontSize: 13, fontFamily: FONT }} axisLine={false} tickLine={false} />
@@ -740,7 +844,7 @@ const Dashboard: React.FC = () => {
 
         <Panel titulo="Timbrado CFDI" kicker="Seis Meses en Curva" flex={1}>
           <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={TIMBRADO_MENSUAL} margin={{ top: 28, right: 10, left: -15, bottom: 0 }}>
+            <AreaChart data={timbradoMensualData} margin={{ top: 28, right: 10, left: -15, bottom: 0 }}>
               <defs>
                 <linearGradient id="coralGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={C.coral} stopOpacity={0.35} />
@@ -762,7 +866,7 @@ const Dashboard: React.FC = () => {
       <Row>
         <Panel titulo="Nómina Real vs Presupuesto" kicker="La Brecha del Semestre" flex={1.3}>
           <ResponsiveContainer width="100%" height={270}>
-            <BarChart data={VARIACION_MENSUAL} margin={{ top: 28, right: 10, left: 10, bottom: 0 }}>
+            <BarChart data={variacionMensualData} margin={{ top: 28, right: 10, left: 10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="1 3" stroke={C.rule} vertical={false} />
               <XAxis dataKey="mes" stroke={C.inkMute} style={{ fontSize: 13, fontFamily: FONT }} axisLine={{ stroke: C.ink }} tickLine={false} />
               <YAxis stroke={C.inkMute} style={{ fontSize: 13, fontFamily: FONT }} axisLine={false} tickLine={false} tickFormatter={(v: number) => (v / 1000000).toFixed(1) + 'M'} />
@@ -780,7 +884,7 @@ const Dashboard: React.FC = () => {
 
         <Panel titulo="Cumplimiento Fiscal" kicker="Seis Entidades en Examen" flex={1}>
           <ResponsiveContainer width="100%" height={240}>
-            <RadarChart data={CUMPLIMIENTO_FISCAL}>
+            <RadarChart data={cumplimientoFiscalData}>
               <PolarGrid stroke={C.rule} />
               <PolarAngleAxis dataKey="entidad" tick={{ fill: C.inkSoft, fontSize: 13, fontFamily: FONT }} />
               <PolarRadiusAxis domain={[90, 100]} tick={{ fill: C.inkMute, fontSize: 12, fontFamily: FONT }} axisLine={false} />
@@ -869,11 +973,11 @@ const Dashboard: React.FC = () => {
         </h2>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 0, borderTop: `1px solid ${C.rule}`, borderBottom: `1px solid ${C.rule}` }}>
-          <KPIDetalle numero="01" titulo="Exactitud de Nómina" subtitulo="Payroll Accuracy Rate" valor="99.4" unidad="%" meta="meta ≥ 99.5%" descripcion="Recibos sin errores sobre el total emitido." estado="alerta" divider />
-          <KPIDetalle numero="02" titulo="Cumplimiento de Plazos" subtitulo="Timeliness" valor="97.8" unidad="%" meta="meta ≥ 98%" descripcion="Nóminas entregadas y pagadas a tiempo." estado="alerta" divider />
-          <KPIDetalle numero="03" titulo="Costo por Recibo" subtitulo="Cost per Payslip" valor="$118" unidad="MXN" meta="meta ≤ $125" descripcion="Costos operativos sobre empleados procesados." estado="ok" divider />
-          <KPIDetalle numero="04" titulo="Tiempo Medio de Resolución" subtitulo="Mean Resolution Time" valor="4.2" unidad="hrs" meta="meta ≤ 4 hrs" descripcion="Respuesta a consultas de empleados." estado="alerta" divider />
-          <KPIDetalle numero="05" titulo="Errores de Cumplimiento" subtitulo="Compliance Error Index" valor="2" unidad="casos" meta="meta = 0" descripcion="Multas o requerimientos SAT/IMSS/INFONAVIT." estado="alerta" />
+          <KPIDetalle numero="01" titulo="Exactitud de Nómina" subtitulo="Payroll Accuracy Rate" valor={kpisDetalle.exactitud.toFixed(1)} unidad="%" meta="meta ≥ 99.5%" descripcion="Recibos sin errores sobre el total emitido." estado={kpisDetalle.exactitud >= 99.5 ? 'ok' : 'alerta'} divider />
+          <KPIDetalle numero="02" titulo="Cumplimiento de Plazos" subtitulo="Timeliness" valor={kpisDetalle.cumplimientoPlazos.toFixed(1)} unidad="%" meta="meta ≥ 98%" descripcion="Nóminas entregadas y pagadas a tiempo." estado={kpisDetalle.cumplimientoPlazos >= 98 ? 'ok' : 'alerta'} divider />
+          <KPIDetalle numero="03" titulo="Costo por Recibo" subtitulo="Cost per Payslip" valor={`$${kpisDetalle.costoPorRecibo}`} unidad="MXN" meta="meta ≤ $125" descripcion="Costos operativos sobre empleados procesados." estado={kpisDetalle.costoPorRecibo <= 125 ? 'ok' : 'alerta'} divider />
+          <KPIDetalle numero="04" titulo="Tiempo Medio de Resolución" subtitulo="Mean Resolution Time" valor={kpisDetalle.tiempoResolucion.toFixed(1)} unidad="hrs" meta="meta ≤ 4 hrs" descripcion="Respuesta a consultas de empleados." estado={kpisDetalle.tiempoResolucion <= 4 ? 'ok' : 'alerta'} divider />
+          <KPIDetalle numero="05" titulo="Errores de Cumplimiento" subtitulo="Compliance Error Index" valor={kpisDetalle.erroresCumplimiento.toString()} unidad="casos" meta="meta = 0" descripcion="Multas o requerimientos SAT/IMSS/INFONAVIT." estado={kpisDetalle.erroresCumplimiento === 0 ? 'ok' : 'alerta'} />
         </div>
       </div>
 
@@ -2099,25 +2203,6 @@ const tdCSF = (header: boolean, width?: string): CSSProperties => ({
 // =====================================================
 
 const MESES_12 = ['May 25', 'Jun 25', 'Jul 25', 'Ago 25', 'Sep 25', 'Oct 25', 'Nov 25', 'Dic 25', 'Ene 26', 'Feb 26', 'Mar 26', 'Abr 26'];
-
-const seedFromString = (s: string): number => {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-};
-
-const mulberry32 = (seed: number) => {
-  let a = seed;
-  return () => {
-    a |= 0; a = (a + 0x6D2B79F5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-};
 
 interface DesgloseMes {
   mes: string;
