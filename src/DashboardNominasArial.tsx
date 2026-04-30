@@ -3423,8 +3423,59 @@ const colorSeveridad = (s: AlertaSeveridad): string => (s === 'alta' ? C.crimson
 const fondoSeveridad = (s: AlertaSeveridad): string => (s === 'alta' ? '#fbe9e6' : '#fbf3df');
 const etiquetaSeveridad = (s: AlertaSeveridad): string => (s === 'alta' ? 'CRÍTICO' : 'ATENCIÓN');
 
+type CanalEnvio = 'whatsapp' | 'correo';
+
+interface ComposerState {
+  canal: CanalEnvio;
+  alerta: AlertaOperativa;
+  destinatario: string;
+  asunto: string;
+  mensaje: string;
+}
+
+const plantillaWhatsApp = (a: AlertaOperativa): string =>
+  `Hola ${a.responsable.split(' ')[0]}, te recuerdo que la tarea "${a.tarea}" tiene ${a.diasRetraso} ${a.diasRetraso === 1 ? 'día' : 'días'} de retraso (compromiso ${a.fechaCompromiso}).\n\nNecesitamos avance hoy mismo. ¿Puedes darme un estatus en la próxima hora?\n\nGracias.`;
+
+const plantillaCorreo = (a: AlertaOperativa): string =>
+  `Estimado(a) ${a.responsable},\n\nLe comparto el estatus de la siguiente tarea pendiente asignada a su área:\n\n· Tarea: ${a.tarea}\n· Cliente: ${a.cliente}\n· Fecha de compromiso: ${a.fechaCompromiso}\n· Días de retraso: ${a.diasRetraso}\n\nDetalle: ${a.detalle}\n\nLe agradeceré priorizar la atención y enviar un avance al cierre del día.\n\nSaludos cordiales.`;
+
 const PestanaAlertas: React.FC = () => {
   const [seccion, setSeccion] = useState<'operativas' | 'mercado'>('operativas');
+  const [composer, setComposer] = useState<ComposerState | null>(null);
+  const [confirmacion, setConfirmacion] = useState<string>('');
+  const [enviando, setEnviando] = useState<boolean>(false);
+
+  const abrirComposer = (canal: CanalEnvio, a: AlertaOperativa): void => {
+    if (canal === 'whatsapp') {
+      setComposer({
+        canal,
+        alerta: a,
+        destinatario: '+52 55 0000 0000',
+        asunto: '',
+        mensaje: plantillaWhatsApp(a)
+      });
+    } else {
+      setComposer({
+        canal,
+        alerta: a,
+        destinatario: `${a.responsable.toLowerCase().replace(/\s+/g, '.')}@gustavorobles.mx`,
+        asunto: `Tarea con retraso (${a.diasRetraso} ${a.diasRetraso === 1 ? 'día' : 'días'}) — ${a.cliente}`,
+        mensaje: plantillaCorreo(a)
+      });
+    }
+  };
+
+  const enviar = (): void => {
+    if (!composer) return;
+    setEnviando(true);
+    window.setTimeout(() => {
+      const etiqueta = composer.canal === 'whatsapp' ? 'WhatsApp' : 'correo';
+      setConfirmacion(`Mensaje enviado por ${etiqueta} a ${composer.alerta.responsable}.`);
+      setComposer(null);
+      setEnviando(false);
+      window.setTimeout(() => setConfirmacion(''), 3500);
+    }, 900);
+  };
 
   const altasOp = ALERTAS_OPERATIVAS.filter((a) => a.severidad === 'alta').length;
   const mediasOp = ALERTAS_OPERATIVAS.filter((a) => a.severidad === 'media').length;
@@ -3560,6 +3611,42 @@ const PestanaAlertas: React.FC = () => {
                         <div style={{ fontSize: 22, fontWeight: 700, color: colorSeveridad(a.severidad), fontFamily: FONT, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
                           {a.diasRetraso} <span style={{ fontSize: 11, fontWeight: 400, color: C.inkSoft }}>{a.diasRetraso === 1 ? 'día' : 'días'}</span>
                         </div>
+                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', marginTop: 10 }}>
+                          <button
+                            onClick={() => abrirComposer('whatsapp', a)}
+                            style={{
+                              backgroundColor: '#1d8a4a',
+                              color: C.paper,
+                              border: 'none',
+                              padding: '6px 10px',
+                              fontSize: 9,
+                              fontFamily: FONT,
+                              fontWeight: 700,
+                              letterSpacing: '1.5px',
+                              textTransform: 'uppercase',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Mandar WhatsApp
+                          </button>
+                          <button
+                            onClick={() => abrirComposer('correo', a)}
+                            style={{
+                              backgroundColor: C.ink,
+                              color: C.paper,
+                              border: 'none',
+                              padding: '6px 10px',
+                              fontSize: 9,
+                              fontFamily: FONT,
+                              fontWeight: 700,
+                              letterSpacing: '1.5px',
+                              textTransform: 'uppercase',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Mandar Correo
+                          </button>
+                        </div>
                       </div>
                     </div>
 
@@ -3585,6 +3672,205 @@ const PestanaAlertas: React.FC = () => {
                   </div>
                 </div>
               ))}
+          </div>
+        </div>
+      )}
+
+      {confirmacion && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            backgroundColor: C.olive,
+            color: C.paper,
+            padding: '14px 20px',
+            border: 'none',
+            fontFamily: FONT,
+            fontSize: 13,
+            fontWeight: 700,
+            letterSpacing: '0.3px',
+            zIndex: 1100,
+            boxShadow: '0 8px 24px rgba(26, 24, 20, 0.25)'
+          }}
+        >
+          {confirmacion}
+        </div>
+      )}
+
+      {composer && (
+        <div
+          onClick={() => !enviando && setComposer(null)}
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(26, 24, 20, 0.55)',
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '60px 24px',
+            overflowY: 'auto'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: C.paper,
+              width: '100%',
+              maxWidth: 640,
+              border: `1px solid ${C.ink}`,
+              fontFamily: FONT
+            }}
+          >
+            <div style={{ padding: '18px 22px', borderBottom: `1px solid ${C.ink}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: composer.canal === 'whatsapp' ? '#1d8a4a' : C.ink, color: C.paper }}>
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '2.5px', textTransform: 'uppercase', opacity: 0.8 }}>
+                  {composer.canal === 'whatsapp' ? 'Mensaje de WhatsApp' : 'Correo electrónico'}
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 700, marginTop: 4, letterSpacing: '-0.2px' }}>
+                  Para: {composer.alerta.responsable}
+                </div>
+              </div>
+              <button
+                onClick={() => !enviando && setComposer(null)}
+                disabled={enviando}
+                style={{
+                  backgroundColor: 'transparent',
+                  color: C.paper,
+                  border: `1px solid ${C.paper}`,
+                  padding: '6px 12px',
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: '1.5px',
+                  textTransform: 'uppercase',
+                  cursor: enviando ? 'not-allowed' : 'pointer',
+                  fontFamily: FONT,
+                  opacity: enviando ? 0.5 : 1
+                }}
+              >
+                Cerrar
+              </button>
+            </div>
+
+            <div style={{ padding: '20px 22px' }}>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', color: C.inkMute, fontFamily: FONT, display: 'block', marginBottom: 6 }}>
+                  {composer.canal === 'whatsapp' ? 'Número' : 'Correo destinatario'}
+                </label>
+                <input
+                  type="text"
+                  value={composer.destinatario}
+                  onChange={(e) => setComposer({ ...composer, destinatario: e.target.value })}
+                  disabled={enviando}
+                  style={{
+                    width: '100%',
+                    border: `1px solid ${C.rule}`,
+                    backgroundColor: C.paper,
+                    padding: '10px 12px',
+                    fontSize: 13,
+                    fontFamily: FONT,
+                    color: C.ink,
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              {composer.canal === 'correo' && (
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', color: C.inkMute, fontFamily: FONT, display: 'block', marginBottom: 6 }}>
+                    Asunto
+                  </label>
+                  <input
+                    type="text"
+                    value={composer.asunto}
+                    onChange={(e) => setComposer({ ...composer, asunto: e.target.value })}
+                    disabled={enviando}
+                    style={{
+                      width: '100%',
+                      border: `1px solid ${C.rule}`,
+                      backgroundColor: C.paper,
+                      padding: '10px 12px',
+                      fontSize: 13,
+                      fontFamily: FONT,
+                      color: C.ink,
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              )}
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', color: C.inkMute, fontFamily: FONT, display: 'block', marginBottom: 6 }}>
+                  Mensaje
+                </label>
+                <textarea
+                  value={composer.mensaje}
+                  onChange={(e) => setComposer({ ...composer, mensaje: e.target.value })}
+                  disabled={enviando}
+                  rows={composer.canal === 'whatsapp' ? 6 : 11}
+                  style={{
+                    width: '100%',
+                    border: `1px solid ${C.rule}`,
+                    backgroundColor: C.paper,
+                    padding: '12px 14px',
+                    fontSize: 13,
+                    fontFamily: FONT,
+                    color: C.ink,
+                    outline: 'none',
+                    resize: 'vertical',
+                    lineHeight: 1.55,
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                <div style={{ fontSize: 11, color: C.inkMute, fontFamily: FONT }}>
+                  Tarea: <span style={{ color: C.ink, fontWeight: 700 }}>{composer.alerta.tarea}</span>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={() => !enviando && setComposer(null)}
+                    disabled={enviando}
+                    style={{
+                      backgroundColor: 'transparent',
+                      color: C.inkSoft,
+                      border: `1px solid ${C.rule}`,
+                      padding: '8px 16px',
+                      fontSize: 11,
+                      fontFamily: FONT,
+                      fontWeight: 700,
+                      letterSpacing: '1.5px',
+                      textTransform: 'uppercase',
+                      cursor: enviando ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={enviar}
+                    disabled={enviando || !composer.mensaje.trim() || !composer.destinatario.trim()}
+                    style={{
+                      backgroundColor: enviando || !composer.mensaje.trim() ? C.rule : (composer.canal === 'whatsapp' ? '#1d8a4a' : C.coral),
+                      color: C.paper,
+                      border: 'none',
+                      padding: '8px 20px',
+                      fontSize: 11,
+                      fontFamily: FONT,
+                      fontWeight: 700,
+                      letterSpacing: '1.5px',
+                      textTransform: 'uppercase',
+                      cursor: enviando ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    {enviando ? 'Enviando…' : 'Enviar'}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
