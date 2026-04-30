@@ -608,7 +608,7 @@ const REPORTES_MATERIALIDAD: ReporteMaterialidad[] = [
 const Dashboard: React.FC = () => {
   const [periodo, setPeriodo] = useState<string>('Abril 2026');
   const [filtroEstatus, setFiltroEstatus] = useState<string>('todos');
-  const [pestana, setPestana] = useState<'operativo' | 'materialidad' | 'reportes'>('operativo');
+  const [pestana, setPestana] = useState<'operativo' | 'materialidad' | 'reportes' | 'chat' | 'alertas'>('operativo');
   const [sortKey, setSortKey] = useState<SortKey>('nombre');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
@@ -810,6 +810,46 @@ const Dashboard: React.FC = () => {
           }}
         >
           Reporte a Clientes
+        </button>
+        <button
+          onClick={() => setPestana('chat')}
+          style={{
+            backgroundColor: 'transparent',
+            color: pestana === 'chat' ? C.coral : C.inkSoft,
+            border: 'none',
+            borderBottom: pestana === 'chat' ? `2px solid ${C.coral}` : '2px solid transparent',
+            padding: '14px 0',
+            marginRight: 32,
+            marginBottom: -1,
+            fontSize: 14,
+            fontFamily: FONT,
+            fontWeight: 700,
+            cursor: 'pointer',
+            textTransform: 'uppercase',
+            letterSpacing: '2px'
+          }}
+        >
+          Asistente
+        </button>
+        <button
+          onClick={() => setPestana('alertas')}
+          style={{
+            backgroundColor: 'transparent',
+            color: pestana === 'alertas' ? C.coral : C.inkSoft,
+            border: 'none',
+            borderBottom: pestana === 'alertas' ? `2px solid ${C.coral}` : '2px solid transparent',
+            padding: '14px 0',
+            marginRight: 32,
+            marginBottom: -1,
+            fontSize: 14,
+            fontFamily: FONT,
+            fontWeight: 700,
+            cursor: 'pointer',
+            textTransform: 'uppercase',
+            letterSpacing: '2px'
+          }}
+        >
+          Alertas Tempranas
         </button>
       </div>
 
@@ -1077,6 +1117,16 @@ const Dashboard: React.FC = () => {
       {/* CONTENIDO PESTAÑA REPORTE A CLIENTES */}
       {pestana === 'reportes' && (
         <PestanaReportes periodo={periodo} formatMXN={formatMXN} formatNum={formatNum} />
+      )}
+
+      {/* CONTENIDO PESTAÑA ASISTENTE (CHAT SIMULADO) */}
+      {pestana === 'chat' && (
+        <PestanaChat />
+      )}
+
+      {/* CONTENIDO PESTAÑA ALERTAS TEMPRANAS */}
+      {pestana === 'alertas' && (
+        <PestanaAlertas />
       )}
 
       {clienteSeleccionado && (
@@ -2877,5 +2927,762 @@ const BloqueIA: React.FC<{ interpretacion: { titulo: string; cuerpo: string; rie
     </div>
   </div>
 );
+
+interface ChatMensaje {
+  id: number;
+  rol: 'usuario' | 'asistente';
+  texto: string;
+}
+
+interface ChatConversacion {
+  id: number;
+  titulo: string;
+  mensajes: ChatMensaje[];
+}
+
+const RESPUESTAS_SIMULADAS: string[] = [
+  'En este momento estoy operando en modo simulación, así que no consulto datos reales del tablero. Lo que sí puedo hacer es ayudarte a estructurar la pregunta para que cuando se conecte el motor de datos obtengamos una respuesta precisa: ¿estás buscando un indicador puntual (SLA, timbrado, variación), una comparación entre clientes, o una explicación conceptual de algún proceso de nómina?',
+  'Buena pregunta. Aunque por ahora respondo con texto genérico, te puedo dar una guía rápida: cuando hablamos de margen por cuenta lo que conviene revisar primero es el fee mensual contra el costo operativo asignado, y luego ajustar por incidentes de SLA y retimbres. Si quieres, te armo una plantilla con los campos exactos que deberíamos pedirle al motor.',
+  'Lo que comentas suele caer en uno de tres frentes: cumplimiento (timbrado, IMSS, SAT), operación (SLA, incidencias, retimbres) o rentabilidad (fee vs. costo). Decirme cuál de los tres te interesa más me ayuda a darte una respuesta más útil incluso en este modo de simulación.',
+  'Entiendo la idea. En la versión conectada, el asistente cruzaría el dato con el periodo seleccionado y los filtros activos del tablero. Por ahora puedo redactarte la conclusión, el correo al cliente o los puntos a llevar a la junta interna a partir del enunciado que me des.',
+  'Te respondo de forma general: en nómina la métrica que mejor anticipa problemas no es el costo sino la variación quincena contra quincena. Cuando la variación se sale de ±2% sin un evento que lo justifique (alta masiva, finiquito, bono), conviene auditar el run antes del timbrado. ¿Quieres que lo enfoque en un cliente en particular?',
+  'Perfecto. Dame un poco más de contexto: ¿lo necesitas para una reunión interna, para presentárselo al cliente o para un reporte formal? El tono y la profundidad cambian bastante según el destinatario, y prefiero acertarle al primer intento.'
+];
+
+const SUGERENCIAS_INICIALES: string[] = [
+  '¿Qué clientes tienen mayor riesgo este mes?',
+  'Resume la operación de la quincena en 3 puntos.',
+  'Explícame la diferencia entre fee y margen operativo.',
+  'Redacta un correo al cliente sobre un retimbre.'
+];
+
+const PestanaChat: React.FC = () => {
+  const [conversaciones, setConversaciones] = useState<ChatConversacion[]>([
+    { id: 1, titulo: 'Nueva conversación', mensajes: [] }
+  ]);
+  const [activaId, setActivaId] = useState<number>(1);
+  const [input, setInput] = useState<string>('');
+  const [pensando, setPensando] = useState<boolean>(false);
+  const respuestaIdx = useRef<number>(0);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  const conversacion = conversaciones.find((c) => c.id === activaId) || conversaciones[0];
+
+  const actualizarConversacion = (id: number, fn: (c: ChatConversacion) => ChatConversacion): void => {
+    setConversaciones((prev) => prev.map((c) => (c.id === id ? fn(c) : c)));
+  };
+
+  const enviar = (texto: string): void => {
+    const limpio = texto.trim();
+    if (!limpio || pensando) return;
+    const idUsuario = Date.now();
+    const idAsistente = idUsuario + 1;
+
+    actualizarConversacion(activaId, (c) => {
+      const nuevoTitulo = c.mensajes.length === 0 ? limpio.slice(0, 48) : c.titulo;
+      return {
+        ...c,
+        titulo: nuevoTitulo,
+        mensajes: [...c.mensajes, { id: idUsuario, rol: 'usuario', texto: limpio }]
+      };
+    });
+    setInput('');
+    setPensando(true);
+
+    window.setTimeout(() => {
+      const respuesta = RESPUESTAS_SIMULADAS[respuestaIdx.current % RESPUESTAS_SIMULADAS.length];
+      respuestaIdx.current += 1;
+      actualizarConversacion(activaId, (c) => ({
+        ...c,
+        mensajes: [...c.mensajes, { id: idAsistente, rol: 'asistente', texto: respuesta }]
+      }));
+      setPensando(false);
+    }, 900 + Math.random() * 600);
+  };
+
+  const nuevaConversacion = (): void => {
+    const nuevoId = Math.max(...conversaciones.map((c) => c.id)) + 1;
+    setConversaciones((prev) => [{ id: nuevoId, titulo: 'Nueva conversación', mensajes: [] }, ...prev]);
+    setActivaId(nuevoId);
+    setInput('');
+  };
+
+  React.useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [conversacion.mensajes.length, pensando]);
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>): void => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      enviar(input);
+    }
+  };
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 0, border: `1px solid ${C.rule}`, height: 'calc(100vh - 280px)', minHeight: 520, backgroundColor: C.paper }}>
+      {/* Sidebar de conversaciones */}
+      <div style={{ borderRight: `1px solid ${C.rule}`, display: 'flex', flexDirection: 'column', backgroundColor: C.paperSoft }}>
+        <div style={{ padding: '16px 16px 12px 16px', borderBottom: `1px solid ${C.rule}` }}>
+          <button
+            onClick={nuevaConversacion}
+            style={{
+              width: '100%',
+              backgroundColor: C.ink,
+              color: C.paper,
+              border: 'none',
+              padding: '10px 14px',
+              fontSize: 11,
+              fontFamily: FONT,
+              fontWeight: 700,
+              letterSpacing: '2px',
+              textTransform: 'uppercase',
+              cursor: 'pointer'
+            }}
+          >
+            + Nueva conversación
+          </button>
+        </div>
+        <div style={{ overflowY: 'auto', flex: 1 }}>
+          {conversaciones.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => setActivaId(c.id)}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                backgroundColor: c.id === activaId ? C.paper : 'transparent',
+                color: C.ink,
+                border: 'none',
+                borderLeft: c.id === activaId ? `3px solid ${C.coral}` : '3px solid transparent',
+                padding: '12px 16px',
+                fontSize: 13,
+                fontFamily: FONT,
+                fontWeight: c.id === activaId ? 700 : 400,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                borderBottom: `1px solid ${C.ruleSoft}`
+              }}
+              title={c.titulo}
+            >
+              {c.titulo}
+            </button>
+          ))}
+        </div>
+        <div style={{ padding: '12px 16px', borderTop: `1px solid ${C.rule}`, fontSize: 10, color: C.inkMute, fontFamily: FONT, letterSpacing: '0.5px' }}>
+          Modo simulación · Sin conexión a fuentes externas
+        </div>
+      </div>
+
+      {/* Área principal del chat */}
+      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <div style={{ padding: '14px 24px', borderBottom: `1px solid ${C.rule}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.coral, fontFamily: FONT }}>
+              Asistente Operativo
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: C.ink, fontFamily: FONT, letterSpacing: '-0.3px', marginTop: 2 }}>
+              {conversacion.titulo}
+            </div>
+          </div>
+        </div>
+
+        <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '24px 24px 8px 24px', backgroundColor: C.paper }}>
+          {conversacion.mensajes.length === 0 && (
+            <div style={{ maxWidth: 640, margin: '40px auto 0 auto', textAlign: 'center' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '3px', textTransform: 'uppercase', color: C.coral, fontFamily: FONT, marginBottom: 10 }}>
+                Cómo puedo ayudarte
+              </div>
+              <h2 style={{ fontFamily: FONT, fontSize: 28, fontWeight: 700, color: C.ink, margin: '0 0 28px 0', letterSpacing: '-0.5px' }}>
+                Pregunta lo que necesites del tablero.
+              </h2>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                {SUGERENCIAS_INICIALES.map((s, i) => (
+                  <button
+                    key={i}
+                    onClick={() => enviar(s)}
+                    style={{
+                      textAlign: 'left',
+                      backgroundColor: C.paperSoft,
+                      border: `1px solid ${C.rule}`,
+                      color: C.ink,
+                      padding: '14px 16px',
+                      fontSize: 13,
+                      fontFamily: FONT,
+                      cursor: 'pointer',
+                      lineHeight: 1.4
+                    }}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {conversacion.mensajes.map((m) => (
+            <div
+              key={m.id}
+              style={{
+                display: 'flex',
+                justifyContent: m.rol === 'usuario' ? 'flex-end' : 'flex-start',
+                marginBottom: 16
+              }}
+            >
+              <div style={{ maxWidth: '78%', display: 'flex', flexDirection: 'column', alignItems: m.rol === 'usuario' ? 'flex-end' : 'flex-start' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', color: m.rol === 'usuario' ? C.inkMute : C.coral, fontFamily: FONT, marginBottom: 4 }}>
+                  {m.rol === 'usuario' ? 'Tú' : 'Asistente'}
+                </div>
+                <div
+                  style={{
+                    backgroundColor: m.rol === 'usuario' ? C.ink : C.paperSoft,
+                    color: m.rol === 'usuario' ? C.paper : C.ink,
+                    border: m.rol === 'usuario' ? 'none' : `1px solid ${C.rule}`,
+                    padding: '12px 16px',
+                    fontSize: 14,
+                    fontFamily: FONT,
+                    lineHeight: 1.55,
+                    whiteSpace: 'pre-wrap'
+                  }}
+                >
+                  {m.texto}
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {pensando && (
+            <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 16 }}>
+              <div style={{ maxWidth: '78%' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', color: C.coral, fontFamily: FONT, marginBottom: 4 }}>
+                  Asistente
+                </div>
+                <div style={{ backgroundColor: C.paperSoft, border: `1px solid ${C.rule}`, padding: '12px 16px', fontSize: 14, color: C.inkMute, fontFamily: FONT, fontStyle: 'italic' }}>
+                  Escribiendo…
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div style={{ padding: '12px 24px 18px 24px', borderTop: `1px solid ${C.rule}`, backgroundColor: C.paper }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, border: `1px solid ${C.ink}`, backgroundColor: C.paper, padding: '10px 12px' }}>
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={onKeyDown}
+              placeholder="Escribe tu mensaje y presiona Enter…"
+              rows={1}
+              style={{
+                flex: 1,
+                resize: 'none',
+                border: 'none',
+                outline: 'none',
+                backgroundColor: 'transparent',
+                color: C.ink,
+                fontFamily: FONT,
+                fontSize: 14,
+                lineHeight: 1.5,
+                maxHeight: 160
+              }}
+            />
+            <button
+              onClick={() => enviar(input)}
+              disabled={!input.trim() || pensando}
+              style={{
+                backgroundColor: !input.trim() || pensando ? C.rule : C.coral,
+                color: C.paper,
+                border: 'none',
+                padding: '8px 18px',
+                fontSize: 11,
+                fontFamily: FONT,
+                fontWeight: 700,
+                letterSpacing: '2px',
+                textTransform: 'uppercase',
+                cursor: !input.trim() || pensando ? 'not-allowed' : 'pointer'
+              }}
+            >
+              Enviar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+type AlertaSeveridad = 'alta' | 'media';
+
+interface AlertaOperativa {
+  id: string;
+  responsable: string;
+  puesto: string;
+  tarea: string;
+  cliente: string;
+  diasRetraso: number;
+  fechaCompromiso: string;
+  severidad: AlertaSeveridad;
+  detalle: string;
+}
+
+interface AlertaMercado {
+  id: string;
+  titulo: string;
+  fuente: string;
+  fecha: string;
+  resumen: string;
+  clientesAfectados: { nombre: string; impacto: string }[];
+  severidad: AlertaSeveridad;
+  recomendacion: string;
+}
+
+const ALERTAS_OPERATIVAS: AlertaOperativa[] = [
+  {
+    id: 'OP-001',
+    responsable: 'Mariana Quintero',
+    puesto: 'Coordinadora de Timbrado',
+    tarea: 'Retimbre masivo CFDI 4.0 — Textiles Bajío',
+    cliente: 'Textiles Bajío',
+    diasRetraso: 7,
+    fechaCompromiso: '22-Abr-2026',
+    severidad: 'alta',
+    detalle: '34 recibos rechazados por SAT (CFDI 4.0, RFC receptor inválido). El cliente ya escaló por correo al ejecutivo de cuenta.'
+  },
+  {
+    id: 'OP-002',
+    responsable: 'Javier Mendoza',
+    puesto: 'Analista de Nómina Sr.',
+    tarea: 'Conciliación IMSS bimestral — Grupo Restaurantero MX',
+    cliente: 'Grupo Restaurantero MX',
+    diasRetraso: 5,
+    fechaCompromiso: '24-Abr-2026',
+    severidad: 'alta',
+    detalle: 'Diferencia de $48,200 sin aclarar entre SUA y nómina interna. Riesgo de multa por entero extemporáneo.'
+  },
+  {
+    id: 'OP-003',
+    responsable: 'Sofía Rangel',
+    puesto: 'Ejecutiva de Cuenta',
+    tarea: 'Revisión y firma de adendum contractual — Hotelera Costa Maya',
+    cliente: 'Hotelera Costa Maya',
+    diasRetraso: 6,
+    fechaCompromiso: '23-Abr-2026',
+    severidad: 'alta',
+    detalle: 'Adendum por incremento de fee 2026 sin firmar. Bloquea facturación del periodo en curso.'
+  },
+  {
+    id: 'OP-004',
+    responsable: 'Luis Cabrera',
+    puesto: 'Coordinador Operativo',
+    tarea: 'Cierre de incidencias quincenales — Constructora Hermosillo',
+    cliente: 'Constructora Hermosillo',
+    diasRetraso: 3,
+    fechaCompromiso: '26-Abr-2026',
+    severidad: 'media',
+    detalle: 'Faltan capturar 11 incidencias de obra (faltas, horas extra). Sin resolver impacta el run del jueves.'
+  },
+  {
+    id: 'OP-005',
+    responsable: 'Andrea Salinas',
+    puesto: 'Analista de Nómina',
+    tarea: 'Cálculo de finiquitos pendientes — Agroindustrias Sinaloa',
+    cliente: 'Agroindustrias Sinaloa',
+    diasRetraso: 2,
+    fechaCompromiso: '27-Abr-2026',
+    severidad: 'media',
+    detalle: '6 finiquitos por temporada agrícola. Cliente solicita entrega antes del viernes.'
+  },
+  {
+    id: 'OP-006',
+    responsable: 'Roberto Esquivel',
+    puesto: 'Soporte Técnico Nómina',
+    tarea: 'Alta de 18 colaboradores en sistema — Metalúrgica del Centro',
+    cliente: 'Metalúrgica del Centro',
+    diasRetraso: 2,
+    fechaCompromiso: '27-Abr-2026',
+    severidad: 'media',
+    detalle: 'Documentación recibida incompleta (faltan 4 CURP). Pendiente confirmación con RH del cliente.'
+  },
+  {
+    id: 'OP-007',
+    responsable: 'Patricia Ortega',
+    puesto: 'Auditoría Interna',
+    tarea: 'Cierre de papeles de trabajo — Servicios Médicos del Sur',
+    cliente: 'Servicios Médicos del Sur',
+    diasRetraso: 4,
+    fechaCompromiso: '25-Abr-2026',
+    severidad: 'alta',
+    detalle: 'Honorarios por asimilados sin soporte de contrato firmado. Hallazgo abierto desde la auditoría de marzo.'
+  },
+  {
+    id: 'OP-008',
+    responsable: 'Diego Navarro',
+    puesto: 'Analista de Nómina Jr.',
+    tarea: 'Provisión PTU 2026 — Manufacturas del Norte SA',
+    cliente: 'Manufacturas del Norte SA',
+    diasRetraso: 1,
+    fechaCompromiso: '28-Abr-2026',
+    severidad: 'media',
+    detalle: 'Cálculo preliminar listo, falta validación final con contraloría del cliente.'
+  }
+];
+
+const ALERTAS_MERCADO: AlertaMercado[] = [
+  {
+    id: 'MK-001',
+    titulo: 'EE.UU. eleva aranceles al acero y aluminio mexicano del 25% al 35%',
+    fuente: 'Reuters · El Financiero',
+    fecha: '28-Abr-2026',
+    severidad: 'alta',
+    resumen: 'La administración estadounidense anunció ajuste arancelario que entra en vigor en 30 días. Sectores metalúrgicos y automotrices con exposición exportadora son los más expuestos.',
+    clientesAfectados: [
+      { nombre: 'Manufacturas del Norte SA', impacto: 'Componentes automotrices con 60% de venta a OEM en Texas. Riesgo alto de recorte de turnos en planta.' },
+      { nombre: 'Metalúrgica del Centro', impacto: 'Fundición y forja con clientes en frontera. Posible reducción de plantilla operativa en 4-6 semanas.' }
+    ],
+    recomendacion: 'Contactar a RH de ambos clientes para anticipar escenario de reducción de plantilla y proyectar finiquitos. Reservar capacidad operativa.'
+  },
+  {
+    id: 'MK-002',
+    titulo: 'Sequía severa en Sinaloa: pronóstico CONAGUA reduce ciclo agrícola 2026 en 22%',
+    fuente: 'CONAGUA · Milenio',
+    fecha: '27-Abr-2026',
+    severidad: 'alta',
+    resumen: 'El reporte semanal de presas confirma niveles por debajo del 30% en distritos de riego clave. Productores de hortalizas para exportación están reduciendo superficie sembrada.',
+    clientesAfectados: [
+      { nombre: 'Agroindustrias Sinaloa', impacto: 'Plantilla mayoritariamente jornalera (256 colaboradores). Reducción de ciclo implica baja masiva entre junio y agosto.' }
+    ],
+    recomendacion: 'Preparar protocolo de finiquitos masivos por terminación de temporada. Alertar al ejecutivo de cuenta para revisar fee variable.'
+  },
+  {
+    id: 'MK-003',
+    titulo: 'Salario mínimo profesional en hotelería sube 12% en zonas turísticas',
+    fuente: 'CONASAMI · DOF',
+    fecha: '25-Abr-2026',
+    severidad: 'media',
+    resumen: 'Acuerdo tripartita publicado en el DOF impacta mínimos profesionales del sector turístico-hotelero a partir del 1 de junio.',
+    clientesAfectados: [
+      { nombre: 'Hotelera Costa Maya', impacto: 'Operación all-inclusive con 189 empleados, mayoría sobre tabulador profesional hotelero. Incremento directo en base de cotización IMSS.' }
+    ],
+    recomendacion: 'Recalcular costo laboral proyectado y notificar al cliente antes del cierre de mayo. Revisar tabulador interno.'
+  },
+  {
+    id: 'MK-004',
+    titulo: 'Banxico mantiene tasa en 9.25%; encarece créditos PyME al sector restaurantero',
+    fuente: 'Banxico · El Economista',
+    fecha: '24-Abr-2026',
+    severidad: 'media',
+    resumen: 'Decisión de política monetaria mantiene presión sobre líneas de crédito revolventes. Restaurantes con apalancamiento alto enfrentan estrés de capital de trabajo.',
+    clientesAfectados: [
+      { nombre: 'Grupo Restaurantero MX', impacto: '15 sucursales con financiamiento bancario activo. Posible retraso en pago de fee si liquidez se contrae en Q2.' }
+    ],
+    recomendacion: 'Reforzar gestión de cobranza preventiva. Revisar antigüedad de cuentas por cobrar del cliente semanalmente.'
+  },
+  {
+    id: 'MK-005',
+    titulo: 'Importaciones textiles asiáticas crecen 18% YoY; presión sobre manufactura nacional',
+    fuente: 'INEGI · Canaintex',
+    fecha: '23-Abr-2026',
+    severidad: 'alta',
+    resumen: 'Reporte trimestral de Canaintex confirma aceleración de importaciones de prenda terminada. Productores nacionales reportan caída de pedidos para temporada otoño-invierno.',
+    clientesAfectados: [
+      { nombre: 'Textiles Bajío', impacto: 'Cliente ya en estatus crítico (variación 11.2%, SLA 78%). Confirmación de recortes haría inviable mantener fee actual.' }
+    ],
+    recomendacion: 'Reunión urgente con ejecutivo de cuenta. Evaluar renegociación de fee o salida ordenada de la cartera.'
+  },
+  {
+    id: 'MK-006',
+    titulo: 'Diésel marino sube 9% en abril; presión sobre fletes de carga federal',
+    fuente: 'Pemex · CANACAR',
+    fecha: '22-Abr-2026',
+    severidad: 'media',
+    resumen: 'Ajuste de precios al transportista impacta costos operativos del autotransporte. CANACAR estima traslado parcial de costos a clientes finales.',
+    clientesAfectados: [
+      { nombre: 'Logística Pacífico', impacto: 'Operación de carga federal y última milla. Margen operativo se comprime si no traslada el costo a sus clientes.' }
+    ],
+    recomendacion: 'No requiere acción inmediata sobre nómina, pero monitorear estabilidad del cliente para cobro oportuno.'
+  },
+  {
+    id: 'MK-007',
+    titulo: 'Reforma a régimen de subcontratación: SAT publica criterios más estrictos para servicios especializados',
+    fuente: 'SAT · DOF',
+    fecha: '21-Abr-2026',
+    severidad: 'alta',
+    resumen: 'Nuevos criterios de validación REPSE entran en vigor el 15 de mayo. Afecta esquemas de servicios especializados con riesgo de no deducibilidad para el cliente.',
+    clientesAfectados: [
+      { nombre: 'Consultora Corporativa MX', impacto: 'Esquema de honorarios por consultoría especializada. Requiere revisión de materialidad y CFDI antes del 15 de mayo.' },
+      { nombre: 'Servicios Médicos del Sur', impacto: 'Honorarios médicos por asimilados con riesgo de reclasificación si no se actualiza REPSE.' }
+    ],
+    recomendacion: 'Activar pestaña de Estrategias de Materialidad para ambos clientes. Validar contratos y CFDI vigentes.'
+  }
+];
+
+const colorSeveridad = (s: AlertaSeveridad): string => (s === 'alta' ? C.crimson : C.amber);
+const fondoSeveridad = (s: AlertaSeveridad): string => (s === 'alta' ? '#fbe9e6' : '#fbf3df');
+const etiquetaSeveridad = (s: AlertaSeveridad): string => (s === 'alta' ? 'CRÍTICO' : 'ATENCIÓN');
+
+const PestanaAlertas: React.FC = () => {
+  const [seccion, setSeccion] = useState<'operativas' | 'mercado'>('operativas');
+
+  const altasOp = ALERTAS_OPERATIVAS.filter((a) => a.severidad === 'alta').length;
+  const mediasOp = ALERTAS_OPERATIVAS.filter((a) => a.severidad === 'media').length;
+  const altasMk = ALERTAS_MERCADO.filter((a) => a.severidad === 'alta').length;
+  const mediasMk = ALERTAS_MERCADO.filter((a) => a.severidad === 'media').length;
+
+  return (
+    <div>
+      {/* Resumen ejecutivo de alertas */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0, border: `1px solid ${C.ink}`, marginBottom: 28 }}>
+        <div style={{ padding: '20px 24px', borderRight: `1px solid ${C.rule}` }}>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.crimson, fontFamily: FONT }}>Operativas críticas</div>
+          <div style={{ fontFamily: FONT, fontSize: 36, fontWeight: 700, color: C.crimson, lineHeight: 1, marginTop: 8, fontVariantNumeric: 'tabular-nums' }}>{altasOp}</div>
+          <div style={{ fontSize: 11, color: C.inkMute, fontFamily: FONT, marginTop: 6 }}>≥ 4 días de retraso</div>
+        </div>
+        <div style={{ padding: '20px 24px', borderRight: `1px solid ${C.rule}` }}>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.amber, fontFamily: FONT }}>Operativas atención</div>
+          <div style={{ fontFamily: FONT, fontSize: 36, fontWeight: 700, color: C.amber, lineHeight: 1, marginTop: 8, fontVariantNumeric: 'tabular-nums' }}>{mediasOp}</div>
+          <div style={{ fontSize: 11, color: C.inkMute, fontFamily: FONT, marginTop: 6 }}>1 a 3 días de retraso</div>
+        </div>
+        <div style={{ padding: '20px 24px', borderRight: `1px solid ${C.rule}` }}>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.crimson, fontFamily: FONT }}>Mercado críticas</div>
+          <div style={{ fontFamily: FONT, fontSize: 36, fontWeight: 700, color: C.crimson, lineHeight: 1, marginTop: 8, fontVariantNumeric: 'tabular-nums' }}>{altasMk}</div>
+          <div style={{ fontSize: 11, color: C.inkMute, fontFamily: FONT, marginTop: 6 }}>Impacto directo en cartera</div>
+        </div>
+        <div style={{ padding: '20px 24px' }}>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.amber, fontFamily: FONT }}>Mercado atención</div>
+          <div style={{ fontFamily: FONT, fontSize: 36, fontWeight: 700, color: C.amber, lineHeight: 1, marginTop: 8, fontVariantNumeric: 'tabular-nums' }}>{mediasMk}</div>
+          <div style={{ fontSize: 11, color: C.inkMute, fontFamily: FONT, marginTop: 6 }}>Monitoreo recomendado</div>
+        </div>
+      </div>
+
+      {/* Sub-pestañas */}
+      <div style={{ display: 'flex', gap: 0, marginBottom: 24, borderBottom: `1px solid ${C.rule}` }}>
+        <button
+          onClick={() => setSeccion('operativas')}
+          style={{
+            backgroundColor: 'transparent',
+            color: seccion === 'operativas' ? C.ink : C.inkMute,
+            border: 'none',
+            borderBottom: seccion === 'operativas' ? `2px solid ${C.ink}` : '2px solid transparent',
+            padding: '12px 0',
+            marginRight: 28,
+            marginBottom: -1,
+            fontSize: 12,
+            fontFamily: FONT,
+            fontWeight: 700,
+            cursor: 'pointer',
+            textTransform: 'uppercase',
+            letterSpacing: '1.8px'
+          }}
+        >
+          Alertas Operativas ({ALERTAS_OPERATIVAS.length})
+        </button>
+        <button
+          onClick={() => setSeccion('mercado')}
+          style={{
+            backgroundColor: 'transparent',
+            color: seccion === 'mercado' ? C.ink : C.inkMute,
+            border: 'none',
+            borderBottom: seccion === 'mercado' ? `2px solid ${C.ink}` : '2px solid transparent',
+            padding: '12px 0',
+            marginRight: 28,
+            marginBottom: -1,
+            fontSize: 12,
+            fontFamily: FONT,
+            fontWeight: 700,
+            cursor: 'pointer',
+            textTransform: 'uppercase',
+            letterSpacing: '1.8px'
+          }}
+        >
+          Alertas de Mercado ({ALERTAS_MERCADO.length})
+        </button>
+      </div>
+
+      {seccion === 'operativas' && (
+        <div>
+          <div style={{ marginBottom: 18 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.coral, fontFamily: FONT }}>
+              Tareas con retraso
+            </div>
+            <h3 style={{ fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.ink, margin: '4px 0 6px 0', letterSpacing: '-0.5px' }}>
+              Personal con compromisos vencidos
+            </h3>
+            <p style={{ fontFamily: FONT, fontSize: 13, color: C.inkSoft, margin: 0, lineHeight: 1.5 }}>
+              Las alertas en rojo superan los 4 días de retraso y requieren intervención inmediata. Las alertas en ámbar son seguimiento preventivo.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {ALERTAS_OPERATIVAS
+              .slice()
+              .sort((a, b) => b.diasRetraso - a.diasRetraso)
+              .map((a) => (
+                <div
+                  key={a.id}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '6px 1fr',
+                    border: `1px solid ${C.rule}`,
+                    backgroundColor: C.paper
+                  }}
+                >
+                  <div style={{ backgroundColor: colorSeveridad(a.severidad) }} />
+                  <div style={{ padding: '16px 20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                        <span
+                          style={{
+                            fontSize: 9,
+                            fontWeight: 700,
+                            letterSpacing: '2px',
+                            textTransform: 'uppercase',
+                            color: C.paper,
+                            backgroundColor: colorSeveridad(a.severidad),
+                            padding: '3px 8px',
+                            fontFamily: FONT
+                          }}
+                        >
+                          {etiquetaSeveridad(a.severidad)}
+                        </span>
+                        <span style={{ fontSize: 10, color: C.inkMute, fontFamily: FONT, letterSpacing: '1px', textTransform: 'uppercase' }}>
+                          {a.id}
+                        </span>
+                        <span style={{ fontSize: 10, color: C.inkMute, fontFamily: FONT }}>·</span>
+                        <span style={{ fontSize: 11, color: C.inkSoft, fontFamily: FONT }}>
+                          Compromiso {a.fechaCompromiso}
+                        </span>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 10, color: C.inkMute, fontFamily: FONT, letterSpacing: '1.5px', textTransform: 'uppercase' }}>Retraso</div>
+                        <div style={{ fontSize: 22, fontWeight: 700, color: colorSeveridad(a.severidad), fontFamily: FONT, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+                          {a.diasRetraso} <span style={{ fontSize: 11, fontWeight: 400, color: C.inkSoft }}>{a.diasRetraso === 1 ? 'día' : 'días'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ fontFamily: FONT, fontSize: 16, fontWeight: 700, color: C.ink, lineHeight: 1.35, letterSpacing: '-0.2px', marginBottom: 6 }}>
+                      {a.tarea}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginBottom: 10, fontFamily: FONT, fontSize: 12 }}>
+                      <div>
+                        <span style={{ color: C.inkMute, letterSpacing: '1px', textTransform: 'uppercase', fontSize: 10, marginRight: 6 }}>Responsable:</span>
+                        <span style={{ color: C.ink, fontWeight: 700 }}>{a.responsable}</span>
+                        <span style={{ color: C.inkSoft }}> · {a.puesto}</span>
+                      </div>
+                      <div>
+                        <span style={{ color: C.inkMute, letterSpacing: '1px', textTransform: 'uppercase', fontSize: 10, marginRight: 6 }}>Cliente:</span>
+                        <span style={{ color: C.ink, fontWeight: 700 }}>{a.cliente}</span>
+                      </div>
+                    </div>
+
+                    <p style={{ fontFamily: FONT, fontSize: 13, color: C.inkSoft, margin: 0, lineHeight: 1.55, paddingTop: 10, borderTop: `1px solid ${C.ruleSoft}` }}>
+                      {a.detalle}
+                    </p>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
+      {seccion === 'mercado' && (
+        <div>
+          <div style={{ marginBottom: 18 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '2.5px', textTransform: 'uppercase', color: C.coral, fontFamily: FONT }}>
+              Inteligencia de mercado
+            </div>
+            <h3 style={{ fontFamily: FONT, fontSize: 22, fontWeight: 700, color: C.ink, margin: '4px 0 6px 0', letterSpacing: '-0.5px' }}>
+              Eventos macro y sectoriales con impacto en la cartera
+            </h3>
+            <p style={{ fontFamily: FONT, fontSize: 13, color: C.inkSoft, margin: 0, lineHeight: 1.5 }}>
+              Cambios regulatorios, fiscales o de mercado relevantes para clientes activos. Cada alerta lista los clientes específicamente expuestos y la acción recomendada.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {ALERTAS_MERCADO
+              .slice()
+              .sort((a, b) => (a.severidad === b.severidad ? 0 : a.severidad === 'alta' ? -1 : 1))
+              .map((a) => (
+                <div
+                  key={a.id}
+                  style={{
+                    border: `1px solid ${C.rule}`,
+                    backgroundColor: C.paper,
+                    borderLeft: `4px solid ${colorSeveridad(a.severidad)}`
+                  }}
+                >
+                  <div style={{ padding: '18px 22px 14px 22px', borderBottom: `1px solid ${C.ruleSoft}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
+                      <span
+                        style={{
+                          fontSize: 9,
+                          fontWeight: 700,
+                          letterSpacing: '2px',
+                          textTransform: 'uppercase',
+                          color: C.paper,
+                          backgroundColor: colorSeveridad(a.severidad),
+                          padding: '3px 8px',
+                          fontFamily: FONT
+                        }}
+                      >
+                        {etiquetaSeveridad(a.severidad)}
+                      </span>
+                      <span style={{ fontSize: 10, color: C.inkMute, fontFamily: FONT, letterSpacing: '1px', textTransform: 'uppercase' }}>
+                        {a.id}
+                      </span>
+                      <span style={{ fontSize: 10, color: C.inkMute, fontFamily: FONT }}>·</span>
+                      <span style={{ fontSize: 11, color: C.inkSoft, fontFamily: FONT }}>{a.fuente}</span>
+                      <span style={{ fontSize: 10, color: C.inkMute, fontFamily: FONT }}>·</span>
+                      <span style={{ fontSize: 11, color: C.inkSoft, fontFamily: FONT }}>{a.fecha}</span>
+                    </div>
+
+                    <h4 style={{ fontFamily: FONT, fontSize: 18, fontWeight: 700, color: C.ink, margin: '0 0 8px 0', letterSpacing: '-0.3px', lineHeight: 1.3 }}>
+                      {a.titulo}
+                    </h4>
+                    <p style={{ fontFamily: FONT, fontSize: 14, color: C.inkSoft, margin: 0, lineHeight: 1.6 }}>
+                      {a.resumen}
+                    </p>
+                  </div>
+
+                  <div style={{ padding: '14px 22px', backgroundColor: fondoSeveridad(a.severidad) }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', color: colorSeveridad(a.severidad), fontFamily: FONT, marginBottom: 10 }}>
+                      Clientes expuestos ({a.clientesAfectados.length})
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {a.clientesAfectados.map((c, i) => (
+                        <div key={i} style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 16 }}>
+                          <div style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, color: C.ink }}>
+                            {c.nombre}
+                          </div>
+                          <div style={{ fontFamily: FONT, fontSize: 13, color: C.inkSoft, lineHeight: 1.5 }}>
+                            {c.impacto}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ padding: '14px 22px', borderTop: `1px solid ${C.ruleSoft}`, display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', color: C.coral, fontFamily: FONT, minWidth: 110, paddingTop: 2 }}>
+                      Recomendación
+                    </div>
+                    <div style={{ fontFamily: FONT, fontSize: 13, color: C.ink, lineHeight: 1.55, flex: 1 }}>
+                      {a.recomendacion}
+                    </div>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+};
 
 export default Dashboard;
